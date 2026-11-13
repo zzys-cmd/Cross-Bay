@@ -216,6 +216,16 @@ class JsonFileSessionStore(SessionStore):
     async def assert_task_owner(self, task_id: str, buyer_id: str) -> str:
         return await self._store.assert_task_owner(task_id, buyer_id)
 
+    async def delete(self, session_id: str, buyer_id: str) -> None:
+        """数据库删除后清掉旧 JSON 快照与流水，避免下次读取把会话迁移回来。"""
+        await self._import_legacy(session_id)
+        await self._store.delete(session_id, buyer_id)
+        for path in (self._path(session_id), self._data_dir / "conversations" / f"{_safe_name(session_id)}.jsonl"):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as err:  # 残留文件只会被再次迁移，不影响本次删除结果
+                logger.warning("删除会话遗留文件失败：%s（%s）", path.name, err)
+
 
 class JsonFileConversationStore(ConversationStore):
     """对话流水的 JSONL 实现：一行一条记录，追加写不覆盖。

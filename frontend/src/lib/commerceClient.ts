@@ -669,6 +669,34 @@ export class CommerceClient {
 
   refreshHistory = (): Promise<void> => this.initialize(false);
 
+  deleteSession = async (id: string): Promise<void> => {
+    if (this.active) throw new Error("当前选购正在处理中，请先停止后再删除。");
+    // 只有纯本机缓存模式（未接 AG-UI 服务）没有服务端记录，直接清本地即可。
+    if (/\/ag-ui\/run\/?$/.test(this.options.url)) {
+      try {
+        await this.journalRequest(`/sessions/${encodeURIComponent(id)}`, "DELETE");
+      } catch (error) {
+        const status = error instanceof Error ? error.message.match(/HTTP\s+(\d{3})/i)?.[1] : "";
+        // 404 表示服务端已经没有这条记录（例如只存在于浏览器缓存），继续清本机缓存。
+        if (status !== "404") {
+          throw new Error(status === "409" ? "该会话仍在执行，请先停止后再删除。"
+            : status === "403" ? "无权删除该会话。" : "删除未能完成，请稍后重试。");
+        }
+      }
+    }
+    // 本机缓存与服务端目录一起删除，否则刷新后又会从浏览器存储里冒出来。
+    this.sessions = this.sessions.filter((entry) => entry.id !== id);
+    try { this.options.storage?.setItem(STORAGE_KEY, JSON.stringify(this.sessions)); } catch {}
+    this.serverHistory = this.serverHistory.filter((entry) => entry.id !== id);
+    if (this.snapshot.sessionId === id) {
+      // 先清空待保存内容，避免 reset 的 save() 把刚删除的会话写回本机缓存。
+      this.update({ messages: [], confirmations: [], toolApprovals: [], products: [], searchCompleted: false });
+      this.reset();
+      return;
+    }
+    this.update({ history: this.history(), historyError: null });
+  };
+
   initialize = async (restoreSession = true): Promise<void> => {
     if (!/\/ag-ui\/run\/?$/.test(this.options.url)) return;
     const revision = ++this.directoryRevision;

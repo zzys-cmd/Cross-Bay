@@ -55,7 +55,9 @@ def compare_runs(baseline, candidate, output, baseline_strategy='current', candi
                 target.parent.mkdir(exist_ok=True)
                 target.touch(mode=0o600, exist_ok=False)
                 target.write_bytes(source.read_bytes())
-                mapped['evidence_trace'] = str(target.relative_to(output))
+                # 统一用 POSIX 分隔符：报告的白名单正则只认 traces/xxx.jsonl，
+                # str() 在 Windows 上给出反斜杠会让合法证据链接被整段跳过。
+                mapped['evidence_trace'] = target.relative_to(output).as_posix()
             rows.append(mapped)
     manifest={**b,'run_id':'compare-'+a['run_id']+'-'+b['run_id'],'profile':'cross_version',
               'strategies':['current','candidate'],'source_stable':a['source_stable'] and b['source_stable'],

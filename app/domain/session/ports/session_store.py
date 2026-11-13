@@ -75,3 +75,11 @@ class SessionStore(ABC):
     @abstractmethod
     async def assert_task_owner(self, task_id: str, buyer_id: str) -> str:
         """验证任务归属并返回会话 ID。"""
+
+    @abstractmethod
+    async def delete(self, session_id: str, buyer_id: str) -> None:
+        """删除该买家名下会话的全部持久状态；归属不符或不存在时拒绝。
+
+        只清理会话自身的上下文事实（快照、fencing、上下文检查点、模型绑定），
+        订单与交易确认属于业务记录，不在此删除范围内。
+        """

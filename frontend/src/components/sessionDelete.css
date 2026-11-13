@@ -1,0 +1,85 @@
+/* 删除选购记录的确认弹窗；与工作台浅色紫调保持一致。 */
+.session-delete {
+  padding: 6px 4px 2px;
+}
+.session-delete-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: #a4483f;
+  background: #fbeeec;
+}
+.session-delete-mark svg {
+  width: 18px;
+  height: 18px;
+}
+.session-delete-eyebrow {
+  margin: 14px 0 0;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  color: #a0a6bd;
+}
+.session-delete h2 {
+  margin: 6px 0 0;
+  font: 400 25px/1.4 var(--serif);
+  color: #435571;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 560px;
+}
+.session-delete-note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: #6c7690;
+}
+.session-delete-error {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  color: #a4483f;
+  background: #fbeeec;
+}
+.session-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.session-delete-keep,
+.session-delete-confirm {
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+.session-delete-keep {
+  color: #62718b;
+  border: 1px solid #e0e2f0;
+  background: #f7f8fd;
+}
+.session-delete-keep:hover:not(:disabled) {
+  color: #435571;
+  background: #eef0f8;
+}
+.session-delete-confirm {
+  color: #fff;
+  background: #a4483f;
+}
+.session-delete-confirm:hover:not(:disabled) {
+  background: #8f3c34;
+}
+.session-delete-keep:disabled,
+.session-delete-confirm:disabled {
+  opacity: .6;
+  cursor: progress;
+}
+@media (max-width: 530px) {
+  .session-delete h2 { font-size: 21px; max-width: 100%; }
+  .session-delete-actions { flex-direction: column-reverse; }
+  .session-delete-keep, .session-delete-confirm { width: 100%; }
+}

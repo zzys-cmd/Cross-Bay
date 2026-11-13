@@ -20,7 +20,8 @@ from app.application.agents.selected_skill import SelectedSkill, SelectedSkillEr
 from app.infrastructure.eventbus import observe_run_events
 from app.infrastructure.ag_ui_journal import JournalConflict, JournalForbidden, JournalNotFound
 from app.presentation.ag_ui_runtime import AGUIRuntime
-from app.presentation.identity import require_buyer, require_session
+from app.presentation.identity import require_buyer, require_session, session_error
+from app.domain.session.ports.session_store import SessionNotFound, SessionOwnerMismatch, SessionOwnerUnbound
 from app.infrastructure.capability_registry import CapabilityVersionChanged
 import json
 
@@ -253,3 +254,43 @@ def register_ag_ui_routes(
             return await runtime().journal.session(session_id, buyer_id)
         except (JournalConflict, JournalForbidden, JournalNotFound) as err:
             raise translate(err) from err
+
+    async def delete_owner(request: Request, buyer_id: str, session_id: str) -> None:
+        """删除时先校验执行上下文归属，再交给日志层的 buyer 校验兜底。
+
+        列表来自日志目录，少数旧会话从未写过 AgentState 绑定；这类会话若严格走
+        require_session 会变成“看得见删不掉”。已绑定且属于他人时仍然拒绝。
+        """
+        store = getattr(request.app.state, "session_store", None)
+        if store is None:
+            return
+        try:
+            await store.assert_owner(session_id, buyer_id, create=False,
+                enforce_owner=getattr(request.app.state, "session_owner_binding", True))
+        except SessionOwnerMismatch as err:
+            raise session_error(err) from err
+        except (SessionNotFound, SessionOwnerUnbound):
+            pass
+        except ValueError as err:  # 非法标识与 require_session 一致按请求错误处理
+            raise HTTPException(status_code=422, detail=str(err)) from err
+
+    @api.delete("/commerce/ag-ui/sessions/{session_id}")
+    async def delete_session(session_id: str, request: Request, buyer_id: str = Query(min_length=1)):
+        """删除一段选购记录：先删可见日志，再清执行上下文；订单与收藏不受影响。"""
+        buyer_id = await require_buyer(request, buyer_id)
+        await delete_owner(request, buyer_id, session_id)
+        journal = runtime().journal
+        try:
+            result = await journal.delete_session(session_id, buyer_id)
+        except (JournalConflict, JournalForbidden, JournalNotFound) as err:
+            raise translate(err) from err
+        # 日志已删除后仍清一次 AgentState：跑完的会话若残留快照，下一轮会带着旧上下文回来。
+        context_cleared = True
+        store = getattr(request.app.state, "session_store", None)
+        if store is not None and hasattr(store, "delete"):
+            try:
+                await store.delete(session_id, buyer_id)
+            except Exception as err:  # noqa: BLE001 —— 日志已删除，不能把成功操作改报失败
+                logger.warning("删除会话上下文失败：session=%s error=%s", session_id, type(err).__name__)
+                context_cleared = False
+        return {**result, "deleted": True, "contextCleared": context_cleared}

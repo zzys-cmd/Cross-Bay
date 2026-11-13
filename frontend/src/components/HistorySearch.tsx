@@ -12,12 +12,13 @@ function updatedLabel(timestamp: number) {
     : date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
 }
 
-export default function HistorySearch({ history, currentSessionId, busy, error, onOpen, onClose }: {
+export default function HistorySearch({ history, currentSessionId, busy, error, onOpen, onDelete, onClose }: {
   history: SessionSummary[];
   currentSessionId: string;
   busy: boolean;
   error?: string | null;
   onOpen: (id: string) => void;
+  onDelete?: (item: SessionSummary) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -67,15 +68,20 @@ export default function HistorySearch({ history, currentSessionId, busy, error, 
       {error && <p className="conversation-search-notice" role="status">{error}</p>}
       {busy && <p className="conversation-search-notice" role="status">当前选购正在处理中，完成或停止后可打开其他记录。</p>}
       <div ref={listRef} id={listId} role="listbox" aria-label="选购记录" className="conversation-search-results">
-        {matches.map((item, index) => <button key={item.id} id={`${listId}-${index}`} role="option" tabIndex={-1}
-          aria-selected={index === activeIndex} aria-disabled={busy} className="conversation-search-result"
-          onMouseEnter={() => setActiveId(item.id)} onMouseDown={event => event.preventDefault()} onClick={() => open(item.id)}>
-          <Icon name="chat" />
-          <span className="conversation-search-title" title={item.title}>{item.title}</span>
-          {item.id === currentSessionId && <span className="conversation-search-current">当前</span>}
-          <span className="conversation-search-id" title={item.id}>{item.id}</span>
-          <time dateTime={Number.isFinite(new Date(item.updatedAt).getTime()) ? new Date(item.updatedAt).toISOString() : undefined}>{updatedLabel(item.updatedAt)}</time>
-        </button>)}
+        {matches.map((item, index) => <div key={item.id} className="conversation-search-row" role="presentation">
+          <button id={`${listId}-${index}`} role="option" tabIndex={-1}
+            aria-selected={index === activeIndex} aria-disabled={busy} className="conversation-search-result"
+            onMouseEnter={() => setActiveId(item.id)} onMouseDown={event => event.preventDefault()} onClick={() => open(item.id)}>
+            <Icon name="chat" />
+            <span className="conversation-search-title" title={item.title}>{item.title}</span>
+            {item.id === currentSessionId && <span className="conversation-search-current">当前</span>}
+            <span className="conversation-search-id" title={item.id}>{item.id}</span>
+            <time dateTime={Number.isFinite(new Date(item.updatedAt).getTime()) ? new Date(item.updatedAt).toISOString() : undefined}>{updatedLabel(item.updatedAt)}</time>
+          </button>
+          {onDelete && <button type="button" className="conversation-search-delete" aria-label={`删除选购记录：${item.title}`}
+            title="删除这段选购" disabled={busy} onMouseDown={event => event.preventDefault()}
+            onClick={() => onDelete(item)}><Icon name="trash" /></button>}
+        </div>)}
       </div>
       {!matches.length && <div className="conversation-search-empty" role="status"><Icon name="search" />
         <strong>{query.trim() ? "没有找到匹配记录" : "还没有选购记录"}</strong>

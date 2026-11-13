@@ -200,7 +200,9 @@ it("侧栏点击搜索才显示输入，按 ID 找到历史并读取服务端正
   expect(host.textContent).toContain("已从数据库恢复：session-backpack");
   expect(requests.some(r=>r.path==="/commerce/ag-ui/sessions/session-backpack" && r.method==="GET")).toBe(true);
   expect(requests.some(r=>r.path==="/commerce/ag-ui/run")).toBe(false);
-  expect(host.querySelectorAll('.sidebar-history button')).toHaveLength(2);
+  // 每段选购一行：打开按钮 + 删除按钮；这里只核对会话条目没有重复。
+  expect(host.querySelectorAll('.sidebar-history .history-short')).toHaveLength(2);
+  expect(host.querySelectorAll('.sidebar-history .history-delete')).toHaveLength(2);
 });
 
 it("从手机导航打开搜索时关闭抽屉，关闭搜索恢复导航按钮焦点和滚动", async () => {

@@ -2825,3 +2825,13 @@ main { margin-left: var(--sidebar-width); padding: 26px 50px 255px; }
 .workspace-page-title { min-width: 0; }
 .workspace-page-title > div { min-width: 0; }
 .workspace-page-title h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(45vw, 600px); }
+
+/* 最近选购：打开与删除并列，删除入口默认淡出，悬停或键盘聚焦时显现。 */
+.sidebar-history .history-row { display: flex; align-items: center; gap: 2px; }
+.sidebar-history .history-row .history-short { flex: 1; min-width: 0; max-width: none; }
+.history-delete { display: grid; place-items: center; flex: none; width: 24px; height: 24px; margin-right: 3px; border-radius: 7px; color: #b3aec7; opacity: 0; transition: opacity .15s ease, color .15s ease, background .15s ease; }
+.history-delete svg { width: 12px; height: 12px; }
+.history-row:hover .history-delete, .history-row:focus-within .history-delete, .history-delete:focus-visible { opacity: 1; }
+.history-delete:hover:not(:disabled) { color: #a4483f; background: #fbeeec; }
+.history-delete:disabled { cursor: default; }
+@media (hover: none) { .history-delete { opacity: 1; } }

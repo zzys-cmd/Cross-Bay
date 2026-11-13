@@ -36,6 +36,7 @@ export function useCommerceAgent() {
     refreshConfirmations: client.refreshConfirmations,
     refreshSkills: client.refreshSkills,
     refreshHistory: client.refreshHistory,
+    deleteSession: client.deleteSession,
     workspaceRequest: client.workspaceRequest,
     resume: client.resume,
   };

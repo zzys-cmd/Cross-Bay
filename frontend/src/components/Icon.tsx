@@ -61,6 +61,7 @@ const paths: Record<string, ReactNode> = {
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   compare: <path d="M5 4v16m14-16v16M8 8h8m-3-3 3 3-3 3M16 16H8m3-3-3 3 3 3" />,
+  trash: <path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13M10 11v5m4-5v5" />,
 };
 export default function Icon({
   name,

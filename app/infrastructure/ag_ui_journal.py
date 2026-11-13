@@ -403,6 +403,32 @@ class AGUIJournal:
             async with db.execute("SELECT session_id,title,updated_at,last_run_id FROM agui_sessions WHERE buyer_id=? ORDER BY updated_at DESC", (buyer_id,)) as cursor:
                 return [{"id": row["session_id"], "title": row["title"], "updatedAt": int(row["updated_at"] * 1000), "runId": row["last_run_id"], "source": "server"} for row in await cursor.fetchall()]
 
+    async def delete_session(self, session_id, buyer_id):
+        """删除会话目录、运行、事件与未处理的学习任务；执行中的会话先拒绝。
+
+        学习任务只清理尚未开始处理的 pending 任务，已产出的策略候选与训练样本
+        属于跨会话聚合数据，不随单个会话删除。
+        """
+        async with self._db(True) as db:
+            await self._recover(db, time.time())
+            row = await self._one(db, "SELECT * FROM agui_sessions WHERE session_id=?", (session_id,))
+            self._owned(row, buyer_id)
+            running = await self._one(db,
+                "SELECT run_id FROM agui_runs WHERE session_id=? AND status='running'", (session_id,))
+            if running:
+                raise JournalConflict("该会话仍在执行，请先停止本轮再删除")
+            async with db.execute("SELECT run_id FROM agui_runs WHERE session_id=?", (session_id,)) as cursor:
+                run_ids = [item["run_id"] for item in await cursor.fetchall()]
+            await db.execute(
+                "DELETE FROM agui_events WHERE run_id IN (SELECT run_id FROM agui_runs WHERE session_id=?)",
+                (session_id,))
+            await db.execute("DELETE FROM agui_runs WHERE session_id=?", (session_id,))
+            await db.execute("DELETE FROM agui_sessions WHERE session_id=?", (session_id,))
+            await db.execute(
+                "DELETE FROM learning_jobs WHERE session_id=? AND status='pending' AND lease_until<=?",
+                (session_id, time.time()))
+            return {"sessionId": session_id, "runs": len(run_ids)}
+
     async def session(self, session_id, buyer_id):
         async with self._db(True) as db:
             await self._recover(db, time.time())

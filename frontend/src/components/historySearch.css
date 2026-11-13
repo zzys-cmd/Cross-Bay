@@ -14,7 +14,8 @@
 .conversation-search-meta small { margin-left: 3px; font-size: 10px; color: #ada7ba; }
 .conversation-search kbd { font: inherit; font-size: 10px; padding: 1px 5px; line-height: 1.5; border: 1px solid #e7e3ef; border-radius: 4px; color: #8f86a6; background: #f6f4fb; }
 .conversation-search-results { min-height: 0; overflow: auto; padding: 0 10px 10px; scrollbar-width: thin; scrollbar-color: #dcd6ed transparent; }
-.conversation-search-result { display: flex; width: 100%; align-items: center; gap: 10px; min-height: 42px; padding: 9px 12px; text-align: left; border: 1px solid transparent; border-radius: 8px; color: #65617f; }
+.conversation-search-row { display: flex; align-items: center; gap: 2px; }
+.conversation-search-result { display: flex; flex: 1; min-width: 0; width: 100%; align-items: center; gap: 10px; min-height: 42px; padding: 9px 12px; text-align: left; border: 1px solid transparent; border-radius: 8px; color: #65617f; }
 .conversation-search-result[aria-selected="true"] { background: #efedf9; border-color: #e5e0f4; color: #60549a; }
 .conversation-search-result > svg { width: 15px; height: 15px; flex-shrink: 0; color: #a198bb; }
 .conversation-search-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -22,6 +23,14 @@
 .conversation-search-current { flex-shrink: 0; border-radius: 4px; padding: 1px 5px; background: #e5e0f5; color: #8a78b3; font-size: 9px; }
 .conversation-search-result time { min-width: 52px; flex-shrink: 0; text-align: right; color: #a49caf; font-size: 11px; }
 .conversation-search-result[aria-disabled="true"] { cursor: default; opacity: .6; }
+/* 删除按钮默认淡出，悬停或用键盘聚焦时才明显，避免误点也保留可发现性。 */
+.conversation-search-delete { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; color: #b3abc2; opacity: 0; transition: opacity .15s ease, background .15s ease, color .15s ease; }
+.conversation-search-delete svg { width: 14px; height: 14px; }
+.conversation-search-row:hover .conversation-search-delete,
+.conversation-search-delete:focus-visible { opacity: 1; }
+.conversation-search-delete:hover:not(:disabled) { color: #a4483f; background: #fbeeec; }
+.conversation-search-delete:disabled { opacity: 0; }
+@media (hover: none) { .conversation-search-delete { opacity: 1; } }
 .conversation-search-empty { display: flex; flex-direction: column; align-items: center; padding: 36px 20px 45px; color: #a59bb8; }
 .conversation-search-empty > svg { height: 24px; width: 24px; margin-bottom: 14px; }
 .conversation-search-empty strong { font-size: 13px; font-weight: 500; color: #7e7492; }

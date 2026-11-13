@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import datetime, timezone
 
-from sqlalchemy import Integer, String, Text, Float, select, text, update
+from sqlalchemy import Integer, String, Text, Float, delete, select, text, update
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -186,6 +186,29 @@ class SqlFencedSessionStore(SessionStore):
             if row.buyer_id != buyer_id:
                 raise SessionOwnerMismatch("无权读取其他买家的任务")
             return row.session_id
+
+    async def delete(self, session_id: str, buyer_id: str) -> None:
+        """删除会话持久状态；先校验归属，再按从属表到主表顺序清理。
+
+        `_ownership(create=False)` 保证未绑定的历史会话不会被误删，
+        也让跨买家删除在写入任何一行之前就被拒绝。
+        """
+        _identifier(session_id, "session_id")
+        _identifier(buyer_id, "buyer_id")
+        async with self._transaction() as db:
+            await self._ownership(db, session_id, buyer_id, create=False, enforce_owner=True)
+            for model in (SessionModelRunRow, SessionModelBindingRow, ContextOperationRow,
+                          ContextCheckpointRow, TaskAccessBindingRow):
+                await db.execute(delete(model).where(model.session_id == session_id))
+            await db.execute(delete(AgentSessionStateRow).where(AgentSessionStateRow.session_id == session_id))
+            await db.execute(delete(SessionWriteClaimRow).where(SessionWriteClaimRow.session_id == session_id))
+            # 旧对话流水表只有部署过 ConversationStore 才会建；按实际存在的表清理。
+            result = await db.execute(text(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+                "('conversation_messages','conversation_events','conversation_sessions')"))
+            legacy = [row[0] for row in result.fetchall()]
+            for table in legacy:
+                await db.execute(text(f"DELETE FROM {table} WHERE session_id=:session_id"), {"session_id": session_id})
 
     async def claim(self, session_id: str, *, buyer_id: str, enforce_owner: bool = True) -> SessionClaim:
         _identifier(session_id, "session_id")

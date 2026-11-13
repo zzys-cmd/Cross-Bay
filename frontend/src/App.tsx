@@ -3,6 +3,7 @@ import RetrievalEvaluation from "./components/RetrievalEvaluation";
 import LearningReview from "./components/LearningReview";
 import ModelPicker from "./components/ModelPicker";
 import HistorySearch from "./components/HistorySearch";
+import SessionDeleteDialog from "./components/SessionDeleteDialog";
 import ContextWorkspace, { useContextWorkspace } from "./components/ContextWorkspace";
 import ShoppingForm from "./components/ShoppingForm";
 import { ToolApprovalCards } from "./components/ToolApprovalCards";
@@ -10,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCommerceAgent } from "./hooks/useCommerceAgent";
 import { readProducts } from "./lib/commerceClient";
 import { resolveBuyerId, setBuyerIdOverride, DEFAULT_BUYER_ID } from "./lib/buyerIdentity";
-import type { ProductCard, PublishedSkill } from "./types";
+import type { ProductCard, PublishedSkill, SessionSummary } from "./types";
 import Icon from "./components/Icon";
 import ConversationTurns from "./components/ConversationTurns";
 import EventTimeline from "./components/EventTimeline";
@@ -74,6 +75,9 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
   }, [buyerDraft]);
   const navigationRef = useRef<HTMLElement>(null);
   const [historySearchOpen, setHistorySearchOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [atmosphere, setAtmosphere] = useState(() => {
     try { return localStorage.getItem("globex.atmosphere") !== "off"; } catch { return true; }
   });
@@ -303,6 +307,25 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
     setMobileNavOpen(false);
     window.scrollTo({ top: 0 });
   };
+  const requestDelete = (item: SessionSummary) => {
+    if (busy) return;
+    setDeleteError(null);
+    setDeleteTarget(item);
+  };
+  const confirmDelete = () => {
+    const target = deleteTarget;
+    if (!target || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    void agent.deleteSession(target.id).then(() => {
+      setDeleteTarget(null);
+      setDeleteBusy(false);
+      setToast("已删除这段选购记录。");
+    }).catch((error: unknown) => {
+      setDeleteBusy(false);
+      setDeleteError(error instanceof Error ? error.message : "删除未能完成，请稍后重试。");
+    });
+  };
   const switchView = (next: View) => {
     setView(next);
     setMobileNavOpen(false);
@@ -412,17 +435,28 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
         <div className="nav-label"><span>最近选购</span><span>{agent.history.length.toString().padStart(2, "0")}</span></div>
         <div className="sidebar-history">
         {agent.history.map((item) => (
-          <button
-            className={`history-short ${view === "shopping" && item.id === agent.sessionId ? "current" : ""}`}
-            aria-current={view === "shopping" && item.id === agent.sessionId ? "page" : undefined}
-            key={item.id}
-            onClick={() => openSession(item.id)}
-            disabled={busy}
-            title={item.title}
-          >
-            <Icon name="chat" /><span>{item.title}</span>
-            {item.origin === "automation" && <span className="session-automation-mark" title="自动化会话" aria-label="自动化会话"><Icon name="clock" /></span>}
-          </button>
+          <div className="history-row" key={item.id}>
+            <button
+              className={`history-short ${view === "shopping" && item.id === agent.sessionId ? "current" : ""}`}
+              aria-current={view === "shopping" && item.id === agent.sessionId ? "page" : undefined}
+              onClick={() => openSession(item.id)}
+              disabled={busy}
+              title={item.title}
+            >
+              <Icon name="chat" /><span>{item.title}</span>
+              {item.origin === "automation" && <span className="session-automation-mark" title="自动化会话" aria-label="自动化会话"><Icon name="clock" /></span>}
+            </button>
+            <button
+              type="button"
+              className="history-delete"
+              aria-label={`删除选购记录：${item.title}`}
+              title="删除这段选购"
+              onClick={() => requestDelete(item)}
+              disabled={busy}
+            >
+              <Icon name="trash" />
+            </button>
+          </div>
         ))}
         {!agent.history.length && <p className="sidebar-empty">第一段选购，等你开启。</p>}
         </div>
@@ -773,7 +807,10 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
         </div>
       </div>}
       {historySearchOpen && <HistorySearch history={agent.history} currentSessionId={agent.sessionId}
-        busy={busy} error={agent.historyError} onOpen={openSession} onClose={() => setHistorySearchOpen(false)} />}
+        busy={busy} error={agent.historyError} onOpen={openSession} onDelete={requestDelete}
+        onClose={() => setHistorySearchOpen(false)} />}
+      {deleteTarget && <SessionDeleteDialog session={deleteTarget} busy={deleteBusy} error={deleteError}
+        onConfirm={confirmDelete} onClose={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteError(null); } }} />}
       {detail && (
         <ProductDetail
           key={detail.product_id}

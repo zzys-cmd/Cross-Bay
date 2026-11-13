@@ -1,6 +1,7 @@
 """评测器自身也要验收：缺失成本、伪通过、场景配对与 HTML 注入。"""
 import copy
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -54,7 +55,9 @@ def test_synthetic_trace_is_durable_private_and_report_link_is_local(tmp_path):
     events = [json.loads(line) for line in file.read_text().splitlines()]
     assert [event['sequence'] for event in events] == [1, 2]
     assert events[0]['payload']['state'] == 'error'
-    assert file.stat().st_mode & 0o777 == 0o600
+    if os.name != 'nt':
+        # Windows 只有只读位，chmod 0o600 落不到实际权限上；该断言由 Linux CI 覆盖。
+        assert file.stat().st_mode & 0o777 == 0o600
     samples = rows();samples[0]['evidence_trace'] = 'traces/a-current-0.jsonl'
     samples[1]['evidence_trace'] = 'https://invalid.example/unsafe'
     render(tmp_path, manifest(), samples)
@@ -243,7 +246,9 @@ def test_cross_version_comparison_keeps_distinct_private_trace_files(tmp_path):
     for row, original in zip(linked, ('a', 'b')):
         file = out/row['evidence_trace']
         assert json.loads(file.read_text()) == {'source':original}
-        assert file.stat().st_mode & 0o777 == 0o600
+        if os.name != 'nt':
+            # 同上：POSIX 权限语义，Windows 不作断言。
+            assert file.stat().st_mode & 0o777 == 0o600
         assert 'href="'+row['evidence_trace']+'"' in (out/'report.html').read_text()
 
 
@@ -255,7 +260,13 @@ def test_cross_version_comparison_rejects_missing_or_external_traces(tmp_path, r
     for name in ('a', 'b'):
         path = tmp_path/name
         (path/'traces').mkdir(parents=True)
-        (path/'traces/escape.jsonl').symlink_to(outside)
+        try:
+            (path/'traces/escape.jsonl').symlink_to(outside)
+        except OSError:
+            # Windows 非管理员/未开开发者模式时创建符号链接需要特权（WinError 1314）。
+            if reference == 'traces/escape.jsonl':
+                pytest.skip('当前环境不允许创建符号链接，无法构造逃逸样本')
+            # 其余参数不依赖该链接，继续验证路径校验。
         (path/'manifest.json').write_text(json.dumps(manifest()))
         samples = rows()
         samples[0]['evidence_trace'] = reference
@@ -364,7 +375,16 @@ async def test_only_declared_platform_skip_is_excused(tmp_path, monkeypatch, dec
     import os
     from unittest.mock import AsyncMock
     from scripts.eval.harness import runner
-    monkeypatch.setattr(os, 'name', 'posix')
+    # 只改 runner 模块看到的平台，不碰全局 os.name：pytest 生成报告时会用
+    # Path(os.getcwd())，全局改成 posix 会让 Windows 上抛
+    # NotImplementedError: cannot instantiate 'PosixPath'，整个会话 INTERNALERROR。
+    class _PosixOS:
+        name = 'posix'
+
+        def __getattr__(self, item):
+            return getattr(os, item)
+
+    monkeypatch.setattr(runner, 'os', _PosixOS())
     skipped=[('tests.test_win','test_chmod')]+([('tests.test_b','test_other')] if other else [])
     _junit(tmp_path/'contracts.xml', skipped)
     process=AsyncMock(); process.wait=AsyncMock(return_value=0)
