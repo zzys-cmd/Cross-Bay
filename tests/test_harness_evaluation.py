@@ -394,3 +394,26 @@ async def test_only_declared_platform_skip_is_excused(tmp_path, monkeypatch, dec
     result=await runner.contract_checks(suite, tmp_path)
     assert result['passed'] is expected
     assert result['platform_skipped']==(['tests.test_win::test_chmod'] if declared_os=='nt' else [])
+
+
+def test_black_sku_check_accepts_extra_non_black_skus():
+    """列出整款并标注哪只是黑色，属于正常表达，不能判成漏答。"""
+    from scripts.eval.harness.runner import black_sku_set_complete
+    expected=[{'sku_id':'P28252-S2','price_major':899.0,'currency':'CNY'},
+              {'sku_id':'P28253-S1','price_major':149,'currency':'CNY'},
+              {'sku_id':'P28254-S1','price_major':219.0,'currency':'USD'}]
+    answer=('第1批中含"黑色"规格的商品有 3 个：\n'
+            '- P28252-S1 银色，P28252-S2 黑色\n'
+            '- P28253-S1 石墨黑，P28253-S2 雾霾蓝\n'
+            '- P28254-S1 曜石黑，P28254-S2 月光白\n'
+            '未含黑色规格：P28251-S1、P28251-S2、P28255-S1')
+    assert black_sku_set_complete(answer, expected) is True
+
+
+def test_black_sku_check_still_fails_when_a_black_sku_is_missing():
+    from scripts.eval.harness.runner import black_sku_set_complete
+    expected=[{'sku_id':'P28252-S2','price_major':899.0,'currency':'CNY'},
+              {'sku_id':'P28253-S1','price_major':149,'currency':'CNY'},
+              {'sku_id':'P28254-S1','price_major':219.0,'currency':'USD'}]
+    assert black_sku_set_complete('黑色有 P28252-S2 和 P28253-S1 两只', expected) is False
+    assert black_sku_set_complete('', expected) is False

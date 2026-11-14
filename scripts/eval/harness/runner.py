@@ -73,6 +73,16 @@ def evidence_writer(path, identity):
     return append
 
 
+def black_sku_set_complete(answer, expected):
+    """黑色 SKU 是否列全。考点是"齐全"，不是"只许出现这些 SKU"。
+
+    答案里额外给出银色/白色等对照项属于正常表达（模型常整款列出再标注哪只是黑色），
+    旧实现用"抓到的 SKU 集合 == 期望集合"会把这种正确回答判成漏答。
+    """
+    found=set(re.findall(r'P\d+-S\d+',answer or ''))
+    return {item['sku_id'] for item in expected} <= found
+
+
 async def execute_case(case, strategy, repetition, settings, suite, work, throttle, collect):
     from scripts.eval.run_context import Benchmark
     from scripts.eval.report_context import score
@@ -94,8 +104,7 @@ async def execute_case(case, strategy, repetition, settings, suite, work, thrott
         row=score([row],{case['id']:case})[0]
         if case.get('expected_black_skus'):
             expected=case['expected_black_skus']
-            found=set(re.findall(r'P\d+-S\d+',row['answer']))
-            row['checks']['complete_black_sku_set']=found=={s['sku_id'] for s in expected}
+            row['checks']['complete_black_sku_set']=black_sku_set_complete(row['answer'],expected)
             if case['template_id']=='dev-sku':
                 from scripts.eval.harness.workflows import check_sku_quotes
                 row['checks']['sku_price_currency_associations']=check_sku_quotes(row['answer'],expected)
