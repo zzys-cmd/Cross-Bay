@@ -4,9 +4,15 @@
 
 这是带持久化、运行恢复、观测和评测机制的工程化实战项目。商品来自版本化样例目录，订单是本地业务账本，尚未接入真实电商供给、支付或物流。正式质量与收益验收仍有未通过项；启动成功或单测通过不能替代效果验收。下文依次介绍启动、页面能力、技术架构、数据保存及验证方式。
 
-![CrossBay App 七页两排总览：首页、商品会话、收藏、订单、长期偏好、扩展和自动化](assets/readme/globex-app-overview.png)
+PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
-<img width="900" height="539" alt="image" src="https://github.com/user-attachments/assets/7851f1f8-7ea2-47fa-a614-eac015112060" />
+![CrossBay PC 端首页：左侧导航与最近选购、选购主张、三个快捷入口、底部输入框与模型选择](assets/readme/globex-app-desktop-home.png)
+
+![CrossBay PC 端选购会话：需求气泡、工具调用步骤、12 件候选商品卡与底部输入框](assets/readme/globex-app-desktop-chat.png)
+
+手机端七页总览（390 × 844）：
+
+![CrossBay App 七页两排总览：首页、商品会话、收藏、订单、长期偏好、扩展和自动化](assets/readme/globex-app-overview.png)
 
 
 ## 先选一种启动方式
