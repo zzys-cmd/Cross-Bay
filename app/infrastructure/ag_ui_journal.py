@@ -99,7 +99,10 @@ class AGUIJournal:
                     self._initialized = True
                     return
                 except aiosqlite.OperationalError as err:
-                    if (not any(marker in str(err).lower() for marker in ("locked", "busy"))
+                    # readonly 与 locked/busy 同属瞬时竞争：多连接同时首次打开新库文件时，
+                    # Windows 上 SQLite 可能返回 "attempt to write a readonly database"。
+                    # 若是真的文件权限问题，20 次重试后仍会按原异常抛出。
+                    if (not any(marker in str(err).lower() for marker in ("locked", "busy", "readonly"))
                             or attempt == 19 or time.monotonic() >= deadline):
                         raise
                     await asyncio.sleep(min(0.05, max(0, deadline - time.monotonic())))
