@@ -78,12 +78,6 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
   const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [atmosphere, setAtmosphere] = useState(() => {
-    try { return localStorage.getItem("globex.atmosphere") !== "off"; } catch { return true; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem("globex.atmosphere", atmosphere ? "on" : "off"); } catch { /* 不依赖本地存储显示背景。 */ }
-  }, [atmosphere]);
   useEffect(() => {
     if (!mobileNavOpen) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -395,8 +389,7 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
   ];
 
   return (
-    <CatalogMediaProvider request={agent.workspaceRequest}><div className={`globex-workbench ${atmosphere ? "has-atmosphere" : "quiet-background"}`}>
-      <div className="workbench-atmosphere" aria-hidden="true" />
+    <CatalogMediaProvider request={agent.workspaceRequest}><div className="globex-workbench">
       {mobileNavOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileNavOpen(false)} />}
       <aside ref={navigationRef} id="workspace-navigation" className={`sidebar ${mobileNavOpen ? "is-open" : ""}`} aria-label="主导航">
         <button className="sidebar-close icon-button" aria-label="关闭导航" onClick={() => setMobileNavOpen(false)}><Icon name="close" /></button>
@@ -509,7 +502,6 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
             </div>
             <div className="topbar-actions">
               <div className="location"><Icon name="pin" />{landedDestination ? `配送至 ${landedDestination}` : "探索世界好物"}</div>
-              <button className="atmosphere-toggle icon-button" title={atmosphere ? "关闭氛围背景" : "开启氛围背景"} aria-label={atmosphere ? "关闭氛围背景" : "开启氛围背景"} aria-pressed={atmosphere} onClick={() => setAtmosphere(!atmosphere)}><Icon name="spark" /></button>
             </div>
           </header>
           {view === "learning" && auth?.isLearningAdmin && <LearningReview request={agent.workspaceRequest} />}
