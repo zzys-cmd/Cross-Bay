@@ -93,7 +93,7 @@ npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 打开 [http://127.0.0.1:5173](http://127.0.0.1:5173)。`--strictPort` 避免端口占用时自动换端口而不知情。前端同源代理 `/commerce` 和 `/health` 到 `http://127.0.0.1:8000`，通常不用配置 CORS 或 `VITE_API_BASE`。
 
-已有本机页面若在 **5174**，继续使用原地址即可；5173 是项目默认端口。需要使用 5174 时，将命令中的端口改为 5174。默认用户固定为 **`pao-coder`**，不需要登录。只要前端连接同一后端数据库，刷新、换端口或没有浏览器缓存，都会按该用户查询历史和使用数据。
+已有本机页面若在 **5174**，继续使用原地址即可；5173 是项目默认端口。需要使用 5174 时，将命令中的端口改为 5174。默认买家固定为 `DEFAULT_BUYER_ID`（见 `frontend/src/lib/buyerIdentity.ts`，页面侧栏点击用户名可改），不需要登录。只要前端连接同一后端数据库，刷新、换端口或没有浏览器缓存，都会按该用户查询历史和使用数据。
 
 **5. 验证确实跑通。**
 
@@ -232,7 +232,7 @@ Token 计数仍通过 AgentScope：默认是 SDK 估算加同模型、同网关�
 | 本地向量索引 | `data/qdrant/`；配置 Qdrant 服务端时由该服务保存 |
 | 队列终态归档 | `data/queue_archive.db`；启用队列时使用 |
 | 心选收藏 | `data/buyer_favorites.db`，按 `buyer_id` 保存和查询 |
-| 近期会话显示缓存、当前会话指针 | 浏览器 `localStorage`，只作加速；无缓存时仍从数据库恢复 `pao-coder` |
+| 近期会话显示缓存、当前会话指针 | 浏览器 `localStorage`，只作加速；无缓存时仍从数据库恢复默认买家 |
 | 当前导航位置 | 当前标签页 `sessionStorage`；刷新保留 |
 
 `DATABASE_URL=file` 只将会话、流水和偏好切到 JSON Store，交易仍保存到独立 `trade.db`，AG-UI、个人 Skill 和新的语义记忆也仍用各自 SQLite 库。模型管理与会话模型选择依赖 SQL 会话绑定，默认 SQLite 模式支持；旧 file 模式不提供这些功能，模型接口会明确返回不可用，不回退成仅浏览器保存。
