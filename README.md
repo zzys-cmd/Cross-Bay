@@ -6,13 +6,13 @@
 
 PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
-![CrossBay PC 端首页：左侧导航与最近选购、选购主张、三个快捷入口、底部输入框与模型选择](assets/readme/globex-app-desktop-home.png)
+![CrossBay PC 端首页：左侧导航与最近选购、选购主张、三个快捷入口、底部输入框与模型选择](assets/readme/crossbay-app-desktop-home.png)
 
-![CrossBay PC 端选购会话：需求气泡、工具调用步骤、12 件候选商品卡与底部输入框](assets/readme/globex-app-desktop-chat.png)
+![CrossBay PC 端选购会话：需求气泡、工具调用步骤、12 件候选商品卡与底部输入框](assets/readme/crossbay-app-desktop-chat.png)
 
-手机端七页总览（390 × 844）：
+手机端七页总览（390 × 844 实际运行截图，汉堡菜单打开侧栏抽屉）：
 
-![CrossBay App 七页两排总览：首页、商品会话、收藏、订单、长期偏好、扩展和自动化](assets/readme/globex-app-overview.png)
+![CrossBay 手机端七页：新的选购、选购会话、订单与收藏、我的 Skill、长期偏好、自动化、检索评测](assets/readme/crossbay-app-mobile-overview.png)
 
 
 ## 先选一种启动方式
@@ -25,7 +25,7 @@ PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
 ### 让 Codex 帮忙跑起来
 
-在 Codex 中打开 **`globex-agent` 目录**（包含本 README、`pyproject.toml`、`frontend/`），可以直接说：
+在 Codex 中打开**本仓库根目录**（包含本 README、`pyproject.toml`、`frontend/`），可以直接说：
 
 > 帮我把这个项目跑起来。先读 README 和现有配置，检查前置环境与端口；保留现有数据和 .env，不要覆盖。安装缺失依赖，启动前后端，验证健康检查和一次真实页面选购，最后告诉我访问地址。缺少模型凭据时告诉我需要配置哪些字段，不要打印密钥。
 
@@ -33,7 +33,7 @@ PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
 ### 本机启动：推荐开发路径
 
-以下命令均从 `globex-agent` 根目录执行。Python 版本范围由 `pyproject.toml` 约束；Node.js 22 与前端 Docker 构建保持一致。模型服务须支持 OpenAI 兼容协议、工具调用和流式输出，且当前账户能访问所选模型。
+以下命令均从仓库根目录执行。Python 版本范围由 `pyproject.toml` 约束；Node.js 22 与前端 Docker 构建保持一致。模型服务须支持 OpenAI 兼容协议、工具调用和流式输出，且当前账户能访问所选模型。
 
 **1. 检查环境、安装依赖。**
 
