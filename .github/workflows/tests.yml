@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      LLM_API_KEY: ''
+      # 仅用于让 load_settings(require_llm_key=True) 的模块完成导入；
+      # 单测不发起真实模型调用，占位值不会命中任何网关。
+      LLM_API_KEY: ci-placeholder-key
       REDIS_URL: ''
     steps:
       - uses: actions/checkout@v4
