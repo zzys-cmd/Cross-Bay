@@ -1,5 +1,7 @@
 # CrossBay · 跨境电商选购 Agent
 
+[![tests](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml/badge.svg)](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml)
+
 基于 **AgentScope 2.x + FastAPI + AG-UI + React** 的电商 Agent 工程。买家用自然语言描述需求，Agent 调用商品检索、品类知识和交易工具，页面实时渲染回答、商品卡和确认单；个人 Skill 与长期偏好可以直接在页面编写和保存。
 
 这是带持久化、运行恢复、观测和评测机制的工程化实战项目。商品来自版本化样例目录，订单是本地业务账本，尚未接入真实电商供给、支付或物流。正式质量与收益验收仍有未通过项；启动成功或单测通过不能替代效果验收。下文依次介绍启动、页面能力、技术架构、数据保存及验证方式。
