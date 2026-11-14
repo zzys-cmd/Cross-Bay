@@ -35,7 +35,14 @@ jobs:
         run: uv sync --frozen
 
       - name: run pytest
-        run: uv run pytest tests -q --junitxml=pytest-report.xml
+        run: |
+          set +e
+          uv run pytest tests -q -p no:cacheprovider 2>&1 | tee pytest-out.txt
+          status=${PIPESTATUS[0]}
+          grep -E "^(FAILED|ERROR)" pytest-out.txt | head -10 | while IFS= read -r line; do
+            echo "::error title=pytest::${line}"
+          done
+          exit "$status"
 
       - name: upload junit report
         if: always()
@@ -60,7 +67,16 @@ jobs:
 
       - name: install dependencies
         working-directory: frontend
-        run: npm ci
+        run: |
+          set +e
+          npm ci --no-audit --no-fund 2>&1 | tee npm-out.txt
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            tail -8 npm-out.txt | while IFS= read -r line; do
+              echo "::error title=npm ci::${line}"
+            done
+          fi
+          exit "$status"
 
       - name: run vitest
         working-directory: frontend
