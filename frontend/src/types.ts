@@ -107,6 +107,17 @@ export interface SessionSummary {
   origin?: "automation";
 }
 
+/** 批量删除里被拒绝的单条：执行中、无权访问或标识非法。 */
+export interface BatchDeleteFailure {
+  sessionId: string;
+  reason: "running" | "forbidden" | "invalid";
+}
+
+export interface BatchDeleteResult {
+  deleted: string[];
+  failed: BatchDeleteFailure[];
+}
+
 export interface ToolApproval { id: string; tool: string; label: string; arguments: string | Record<string, unknown> }
 
 export interface CommerceSnapshot {

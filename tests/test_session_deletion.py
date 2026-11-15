@@ -146,3 +146,56 @@ async def test_http_delete_refuses_running_session(api, journal):
     response = await api.delete("/commerce/ag-ui/sessions/s1", params={"buyer_id": "b1"})
     assert response.status_code == 409
     assert [item["id"] for item in await journal.sessions("b1")] == ["s1"]
+
+
+async def test_http_batch_delete_removes_multiple_sessions(api, journal, store):
+    await finished_run(journal, "r2", "s2")
+    await store.assert_owner("s2", "b1", create=True)
+    response = await api.post("/commerce/ag-ui/sessions/batch-delete",
+                              params={"buyer_id": "b1"}, json={"session_ids": ["s1", "s2"]})
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["deletedCount"] == 2
+    assert sorted(payload["deleted"]) == ["s1", "s2"]
+    assert payload["failed"] == []
+    assert (await api.get("/commerce/ag-ui/sessions", params={"buyer_id": "b1"})).json() == {"sessions": []}
+    assert await store.load("s1") is None
+
+
+async def test_http_batch_delete_treats_missing_session_as_deleted(api, journal):
+    # 浏览器缓存可能残留服务端已清理的 ID，重复删除按成功计，用户不必逐条排查。
+    response = await api.post("/commerce/ag-ui/sessions/batch-delete",
+                              params={"buyer_id": "b1"}, json={"session_ids": ["s1", "nope"]})
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert sorted(payload["deleted"]) == ["nope", "s1"]
+    assert payload["failed"] == []
+
+
+async def test_http_batch_delete_continues_when_one_session_is_running(api, journal):
+    await finished_run(journal, "r2", "s2")
+    await journal.reserve(body(run="r3", session="s2"), "b1", "owner3")
+    response = await api.post("/commerce/ag-ui/sessions/batch-delete",
+                              params={"buyer_id": "b1"}, json={"session_ids": ["s1", "s2"]})
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["deleted"] == ["s1"]
+    assert payload["failed"] == [{"sessionId": "s2", "reason": "running"}]
+    assert [item["id"] for item in await journal.sessions("b1")] == ["s2"]
+
+
+async def test_http_batch_delete_rejects_foreign_session_only(api, journal):
+    await journal.reserve(body(run="r2", session="s2", buyer="b2"), "b2", "owner2")
+    response = await api.post("/commerce/ag-ui/sessions/batch-delete",
+                              params={"buyer_id": "b1"}, json={"session_ids": ["s1", "s2"]})
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["deleted"] == ["s1"]
+    assert payload["failed"] == [{"sessionId": "s2", "reason": "forbidden"}]
+    assert [item["id"] for item in await journal.sessions("b2")] == ["s2"]
+
+
+async def test_http_batch_delete_requires_non_empty_selection(api):
+    empty = await api.post("/commerce/ag-ui/sessions/batch-delete",
+                           params={"buyer_id": "b1"}, json={"session_ids": []})
+    assert empty.status_code == 422

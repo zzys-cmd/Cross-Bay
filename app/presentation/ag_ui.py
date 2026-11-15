@@ -12,6 +12,7 @@ from ag_ui.core import BaseEvent, RunAgentInput
 from ag_ui.encoder import EventEncoder
 from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from app.application.agents.ag_ui_adapter import AGUIRunAdapter
 from app.application.usecases.confirmation_service import ConfirmationService
@@ -26,6 +27,11 @@ from app.infrastructure.capability_registry import CapabilityVersionChanged
 import json
 
 logger = logging.getLogger(__name__)
+
+
+class SessionBatchDelete(BaseModel):
+    """批量删除请求。上限 50 条，与侧栏一次可见的会话量级相当。"""
+    session_ids: list[str] = Field(min_length=1, max_length=50)
 
 
 def parse_intent(body: RunAgentInput) -> SubmitIntentInput:
@@ -294,3 +300,38 @@ def register_ag_ui_routes(
                 logger.warning("删除会话上下文失败：session=%s error=%s", session_id, type(err).__name__)
                 context_cleared = False
         return {**result, "deleted": True, "contextCleared": context_cleared}
+
+    @api.post("/commerce/ag-ui/sessions/batch-delete")
+    async def delete_sessions(payload: SessionBatchDelete, request: Request, buyer_id: str = Query(min_length=1)):
+        """批量删除选购记录：逐条处理，单条失败不影响其余，结果逐条返回。
+
+        运行中的会话与属于他人的会话进入 failed；已不存在的记录按成功计（幂等），
+        因为浏览器缓存里可能残留服务端已清理的 ID。订单与收藏同样不受影响。
+        """
+        buyer_id = await require_buyer(request, buyer_id)
+        journal = runtime().journal
+        store = getattr(request.app.state, "session_store", None)
+        deleted: list[str] = []
+        failed: list[dict[str, str]] = []
+        for session_id in payload.session_ids:
+            try:
+                await delete_owner(request, buyer_id, session_id)
+                await journal.delete_session(session_id, buyer_id)
+            except HTTPException as err:
+                failed.append({"sessionId": session_id,
+                               "reason": "forbidden" if err.status_code == 403 else "invalid"})
+                continue
+            except JournalNotFound:
+                deleted.append(session_id)
+                continue
+            except (JournalConflict, JournalForbidden) as err:
+                failed.append({"sessionId": session_id,
+                               "reason": "running" if isinstance(err, JournalConflict) else "forbidden"})
+                continue
+            if store is not None and hasattr(store, "delete"):
+                try:
+                    await store.delete(session_id, buyer_id)
+                except Exception as err:  # noqa: BLE001 —— 日志已删除，不能把成功操作改报失败
+                    logger.warning("批量删除会话上下文失败：session=%s error=%s", session_id, type(err).__name__)
+            deleted.append(session_id)
+        return {"deleted": deleted, "failed": failed, "deletedCount": len(deleted)}

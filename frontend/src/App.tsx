@@ -4,6 +4,7 @@ import LearningReview from "./components/LearningReview";
 import ModelPicker from "./components/ModelPicker";
 import HistorySearch from "./components/HistorySearch";
 import SessionDeleteDialog from "./components/SessionDeleteDialog";
+import SessionBatchDeleteDialog from "./components/SessionBatchDeleteDialog";
 import ContextWorkspace, { useContextWorkspace } from "./components/ContextWorkspace";
 import ShoppingForm from "./components/ShoppingForm";
 import { ToolApprovalCards } from "./components/ToolApprovalCards";
@@ -78,6 +79,11 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
   const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
   useEffect(() => {
     if (!mobileNavOpen) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -325,6 +331,41 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
     setMobileNavOpen(false);
     window.scrollTo({ top: 0 });
   };
+  const toggleSelectMode = () => {
+    setSelectMode((on) => !on);
+    setSelectedIds([]);
+    setBatchError(null);
+  };
+  const toggleSelected = (id: string) => {
+    setBatchError(null);
+    setSelectedIds((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
+  };
+  const selectAllHistory = () => {
+    const all = agent.history.map((item) => item.id);
+    setSelectedIds((list) => (list.length === all.length ? [] : all));
+  };
+  const confirmBatchDelete = () => {
+    if (batchBusy || selectedIds.length === 0) return;
+    setBatchBusy(true);
+    setBatchError(null);
+    void agent.batchDeleteSessions(selectedIds).then((result) => {
+      setBatchBusy(false);
+      setBatchConfirmOpen(false);
+      if (result.failed.length > 0) {
+        // 部分失败时留在选择模式，只保留没删掉的项，方便核对是哪些被跳过。
+        setSelectedIds(result.failed.map((entry) => entry.sessionId));
+        setBatchError(`${result.failed.length} 段未能删除（正在执行或无权访问），其余已删除。`);
+        setToast(`已删除 ${result.deleted.length} 段选购记录。`);
+        return;
+      }
+      setSelectedIds([]);
+      setSelectMode(false);
+      setToast(`已删除 ${result.deleted.length} 段选购记录。`);
+    }).catch((error: unknown) => {
+      setBatchBusy(false);
+      setBatchError(error instanceof Error ? error.message : "批量删除未能完成，请稍后重试。");
+    });
+  };
   const toggleFavorite = useCallback(
     (product: ProductCard) => {
       if (favoriteBusy.current) return;
@@ -425,20 +466,38 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
             <Icon name="search" />搜索
           </button>
         </nav>
-        <div className="nav-label"><span>最近选购</span><span>{agent.history.length.toString().padStart(2, "0")}</span></div>
+        <div className="nav-label">
+          <span>最近选购</span>
+          <span className="nav-label-meta">
+            {agent.history.length > 1 && (
+              <button type="button" className="history-manage" onClick={toggleSelectMode} disabled={busy}
+                aria-pressed={selectMode}>
+                {selectMode ? "取消" : "管理"}
+              </button>
+            )}
+            <b>{agent.history.length.toString().padStart(2, "0")}</b>
+          </span>
+        </div>
         <div className="sidebar-history">
-        {agent.history.map((item) => (
-          <div className="history-row" key={item.id}>
+        {agent.history.map((item) => {
+          const checked = selectMode && selectedIds.includes(item.id);
+          return (
+          <div className={`history-row${checked ? " is-selected" : ""}`} key={item.id}>
             <button
-              className={`history-short ${view === "shopping" && item.id === agent.sessionId ? "current" : ""}`}
-              aria-current={view === "shopping" && item.id === agent.sessionId ? "page" : undefined}
-              onClick={() => openSession(item.id)}
+              className={`history-short ${view === "shopping" && item.id === agent.sessionId && !selectMode ? "current" : ""}`}
+              aria-current={view === "shopping" && item.id === agent.sessionId && !selectMode ? "page" : undefined}
+              aria-pressed={selectMode ? checked : undefined}
+              onClick={() => (selectMode ? toggleSelected(item.id) : openSession(item.id))}
               disabled={busy}
               title={item.title}
             >
-              <Icon name="chat" /><span>{item.title}</span>
+              {selectMode
+                ? <span className={`history-check${checked ? " is-on" : ""}`} aria-hidden="true">{checked && <Icon name="check" />}</span>
+                : <Icon name="chat" />}
+              <span>{item.title}</span>
               {item.origin === "automation" && <span className="session-automation-mark" title="自动化会话" aria-label="自动化会话"><Icon name="clock" /></span>}
             </button>
+            {!selectMode && (
             <button
               type="button"
               className="history-delete"
@@ -448,11 +507,23 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
               disabled={busy}
             >
               <Icon name="trash" />
-            </button>
+            </button>)}
           </div>
-        ))}
+          );
+        })}
         {!agent.history.length && <p className="sidebar-empty">第一段选购，等你开启。</p>}
         </div>
+        {selectMode && (
+          <div className="history-batch">
+            <button type="button" className="history-batch-all" onClick={selectAllHistory} disabled={batchBusy}>
+              {selectedIds.length === agent.history.length ? "取消全选" : "全选"}
+            </button>
+            <button type="button" className="history-batch-delete" onClick={() => setBatchConfirmOpen(true)}
+              disabled={batchBusy || selectedIds.length === 0}>
+              {selectedIds.length ? `删除 ${selectedIds.length} 项` : "删除"}
+            </button>
+          </div>
+        )}
         <div className="sidebar-bottom">
           <div className="sidebar-note"><span className="sidebar-note-icon"><Icon name="spark" /></span><div><strong>让选择，轻一点。</strong><p>找好物，也找到自己的偏好。</p></div></div>
           <div className="profile">
@@ -803,6 +874,9 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
         onClose={() => setHistorySearchOpen(false)} />}
       {deleteTarget && <SessionDeleteDialog session={deleteTarget} busy={deleteBusy} error={deleteError}
         onConfirm={confirmDelete} onClose={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteError(null); } }} />}
+      {batchConfirmOpen && <SessionBatchDeleteDialog count={selectedIds.length} busy={batchBusy} error={batchError}
+        onConfirm={confirmBatchDelete}
+        onClose={() => { if (!batchBusy) { setBatchConfirmOpen(false); setBatchError(null); } }} />}
       {detail && (
         <ProductDetail
           key={detail.product_id}

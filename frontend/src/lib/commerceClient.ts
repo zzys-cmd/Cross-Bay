@@ -5,6 +5,8 @@ import {
 } from "@ag-ui/client";
 import type { Message } from "@ag-ui/core";
 import type {
+  BatchDeleteFailure,
+  BatchDeleteResult,
   ChatMessage,
   CommerceSnapshot,
   ProductCard,
@@ -653,11 +655,13 @@ export class CommerceClient {
     } catch { /* 保留已有步骤；稍后重开会话会重新读取权威记录。 */ }
   }
 
-  private async journalRequest(path: string, method = "GET"): Promise<Record<string, unknown>> {
+  private async journalRequest(path: string, method = "GET", body?: unknown): Promise<Record<string, unknown>> {
     const base = this.options.url.replace(/\/run\/?$/, "");
     const separator = path.includes("?") ? "&" : "?";
+    const headers = this.authHeaders();
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     const response = await (this.options.fetch ?? globalThis.fetch)(`${base}${path}${separator}buyer_id=${encodeURIComponent(this.buyerId)}`, {
-      method, headers: this.authHeaders(),
+      method, headers, body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data: unknown = await response.json().catch(() => {
@@ -697,8 +701,37 @@ export class CommerceClient {
     this.update({ history: this.history(), historyError: null });
   };
 
-  initialize = async (restoreSession = true): Promise<void> => {
-    if (!/\/ag-ui\/run\/?$/.test(this.options.url)) return;
+  batchDeleteSessions = async (ids: string[]): Promise<BatchDeleteResult> => {
+    if (this.active) throw new Error("当前选购正在处理中，请先停止后再删除。");
+    const unique = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (unique.length === 0) return { deleted: [], failed: [] };
+    let deleted = unique;
+    let failed: BatchDeleteFailure[] = [];
+    if (/\/ag-ui\/run\/?$/.test(this.options.url)) {
+      // 服务端逐条处理：运行中与越权的进 failed，其余照删；已不存在的按成功计。
+      const data = await this.journalRequest("/sessions/batch-delete", "POST", { session_ids: unique });
+      deleted = Array.isArray(data.deleted) ? data.deleted.filter((id): id is string => typeof id === "string") : [];
+      failed = Array.isArray(data.failed)
+        ? data.failed.filter(isRecord).map((entry) => ({
+            sessionId: typeof entry.sessionId === "string" ? entry.sessionId : "",
+            reason: entry.reason === "running" || entry.reason === "forbidden" ? entry.reason : "invalid",
+          }))
+        : [];
+    }
+    const removed = new Set(deleted);
+    this.sessions = this.sessions.filter((entry) => !removed.has(entry.id));
+    try { this.options.storage?.setItem(STORAGE_KEY, JSON.stringify(this.sessions)); } catch {}
+    this.serverHistory = this.serverHistory.filter((entry) => !removed.has(entry.id));
+    if (this.snapshot.sessionId && removed.has(this.snapshot.sessionId)) {
+      this.update({ messages: [], confirmations: [], toolApprovals: [], products: [], searchCompleted: false });
+      this.reset();
+      return { deleted, failed };
+    }
+    this.update({ history: this.history(), historyError: null });
+    return { deleted, failed };
+  };
+
+  initialize = async (restoreSession = true): Promise<void> => {    if (!/\/ag-ui\/run\/?$/.test(this.options.url)) return;
     const revision = ++this.directoryRevision;
     const historyRevision = this.historyRevision;
     try {
