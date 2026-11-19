@@ -2545,14 +2545,16 @@ body { background: #f3f6fc; }
 .history-short span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .nav-label-meta { display: inline-flex; align-items: center; gap: 8px; }
 .nav-label-meta b { font-weight: 500; }
-.history-manage { height: 19px; padding: 0 7px; border: 1px solid #dfe4ef; border-radius: 6px; background: #ffffffb8; color: #6b7a90; font-size: 9px; letter-spacing: .5px; cursor: pointer; }
+.history-manage { height: 20px; padding: 0 8px; border: 1px solid #ccd4e4; border-radius: 6px; background: #fff; color: #55637d; font-size: 10px; letter-spacing: .3px; cursor: pointer; }
 .history-manage:hover { border-color: #c6cdec; color: #5758b3; }
 .history-manage[aria-pressed=true] { background: #eef0fb; border-color: #cfd3ee; color: #5758b3; }
 .history-manage:disabled { opacity: .5; cursor: not-allowed; }
-.history-check { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid #c8d0e0; border-radius: 4px; background: #fff; flex: none; }
+.history-check { display: inline-grid; place-items: center; width: 16px; min-width: 16px; height: 16px; flex: 0 0 16px; border: 1.5px solid #aab5c8; border-radius: 5px; background: #fff; transition: background .15s, border-color .15s; box-sizing: border-box; }
+.history-short:hover .history-check { border-color: #5b62c4; }
 .history-check.is-on { background: #5b62c4; border-color: #5b62c4; }
-.history-check svg { width: 9px; height: 9px; color: #fff; opacity: 1; stroke-width: 3; }
-.history-row.is-selected .history-short { background: #eef0fb; color: #464a7a; }
+.history-check svg { width: 11px; height: 11px; color: #fff; opacity: 1; stroke-width: 3.5; }
+.history-row.is-selected { box-shadow: inset 3px 0 0 #5b62c4; border-radius: 6px; }
+.history-row.is-selected .history-short { background: #e7eafb; color: #3b4070; font-weight: 500; }
 .history-batch { display: flex; gap: 8px; margin: 7px 10px 0; }
 .history-batch button { flex: 1; height: 27px; border-radius: 8px; font-size: 11px; cursor: pointer; }
 .history-batch-all { border: 1px solid #dfe4ef; background: #ffffffb8; color: #5c6b82; }
@@ -2830,7 +2832,8 @@ main { margin-left: var(--sidebar-width); padding: 26px 50px 255px; }
 }
 
 /* 当前会话由最近选购定位，自动化只占一个小钟表标记。 */
-.sidebar .history-short > span:first-of-type { flex: 1; min-width: 0; text-align: left; }
+/* 标题用显式 class：多选模式下首个子元素是勾选框，:first-of-type 会把 flex:1 和 min-width:0 套到勾选框上。 */
+.sidebar .history-short .history-title { flex: 1; min-width: 0; text-align: left; }
 .sidebar .history-short .session-automation-mark { display: inline-flex; flex: none; color: #8c7bc5; overflow: visible; }
 .sidebar .history-short .session-automation-mark svg { width: 11px; height: 11px; opacity: 1; }
 .workspace-page-title { min-width: 0; }

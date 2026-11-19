@@ -494,7 +494,7 @@ export default function App({ auth }: { auth?: AppAuth } = {}) {
               {selectMode
                 ? <span className={`history-check${checked ? " is-on" : ""}`} aria-hidden="true">{checked && <Icon name="check" />}</span>
                 : <Icon name="chat" />}
-              <span>{item.title}</span>
+              <span className="history-title">{item.title}</span>
               {item.origin === "automation" && <span className="session-automation-mark" title="自动化会话" aria-label="自动化会话"><Icon name="clock" /></span>}
             </button>
             {!selectMode && (
