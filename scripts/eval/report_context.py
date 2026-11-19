@@ -26,12 +26,12 @@ def association_check(case_id,answer,rules=None):
     anchors=sorted((m.start(),m.end(),index) for index,(pattern,_,_) in enumerate(rules) for m in re.finditer(pattern,clean,re.I))
     outcomes=[]
     for index,(_,expected,wrong) in enumerate(rules):
-        evidence=[]
+        evidence=None
         for start,end,group in anchors:
             if group!=index:continue
             postfix=re.search(r'(?<![0-9])('+re.escape(expected)+'|'+re.escape(wrong)+r')(?:\.0+)?[^0-9]{0,2}[（(]$',clean[max(0,start-24):start])
             if postfix and clean[end:end+1] in {')','）'}:
-                evidence.append(postfix.group(1)==expected);continue
+                evidence=postfix.group(1)==expected;break
             boundary=min((pos for pos,_,other in anchors if pos>=end and other!=index),default=len(clean))
             # 取值窗口止于本字段边界：并列加号两侧是不同场景的成对数值
             # （如"运费38 + 税4"），不截断会把隔壁字段的值当成本字段答案。
@@ -40,8 +40,11 @@ def association_check(case_id,answer,rules=None):
             text=re.sub(r'P\d+(?:-S\d+)?','',segment)
             # 属性先按锚点分区，再取本区首个目标数值，标题中的逗号不会拆断SKU与价格。
             match=re.search(r'(?<![0-9])('+re.escape(expected)+'|'+re.escape(wrong)+r')(?:\.0+)?(?![0-9.])',text)
-            if match:evidence.append(match.group(1)==expected)
-        outcomes.append(False if False in evidence else True if True in evidence else None)
+            if match:
+                evidence=match.group(1)==expected;break
+        # 只认第一处能取到值的提及：先答的是主答案，其后多为补充场景或
+        # "不能沿用历史 26/4"这类否定说明，继续扫描会把它们当成反证。
+        outcomes.append(evidence)
     if case_id.endswith('hold-blue') and re.search(r'当前库存[^0-9]{0,12}'+re.escape(rules[0][1])+r'(?![0-9])',clean):outcomes=[False]
     return {'applicable':True,'status':'failed' if False in outcomes else 'passed' if all(x is True for x in outcomes) else 'unknown','fields':outcomes}
 

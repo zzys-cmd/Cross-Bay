@@ -476,3 +476,10 @@ def test_association_check_keeps_markdown_table_values():
 
     parallel='运费 CNY 26、税费 CNY 4、到手总价 CNY 183'
     assert association_check('h1-hold-tax', parallel, TAX_RULES)['status']=='passed'
+
+def test_association_check_ignores_numbers_inside_a_negated_note():
+    """不能沿用历史 26/4 里的 26 是否定说明，不是税费答案。"""
+    from scripts.eval.report_context import association_check
+    answer=('| 项目 | 金额 |\n|---|---|\n| 运费 | CNY 26 |\n| 税费 | CNY 4 |\n\n'
+            '当前寄英国的运费和税费：工具未返回明细，未知，不能沿用历史 26/4')
+    assert association_check('h1-hold-tax', answer, TAX_RULES)['status']=='passed'
