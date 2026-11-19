@@ -50,7 +50,45 @@ def paired(rows, baseline, candidate, repetitions, field=None, seed=20260918):
             'ci95':[percentile(samples,.025),percentile(samples,.975)]}
 
 
+def apply_local_pricing(manifest, rows):
+    """网关不返回 cost 时，按 suite 声明的单价把 token 折算成金额。
+
+    多数 OpenAI 兼容网关只回 token 数不回账单，而缓存命中的单价通常远低于
+    首次输入（本次核对为 1/50），不做折算就只能按物理 token 比大小，结论会
+    反过来。为避免用未核验价格推导收益，四项背书（verified/currency/source/
+    verified_at）与三个单价必须齐全才生效，否则原样保留未知。
+    返回被折算的调用条数。
+    """
+    pricing = manifest.get('pricing') or {}
+    rates = (pricing.get('input_per_million'), pricing.get('output_per_million'),
+             pricing.get('cache_read_per_million'))
+    if not all(type(v) in (int, float) and v >= 0 for v in rates):
+        return 0
+    if not all(pricing.get(k) for k in ('verified', 'currency', 'source', 'verified_at')):
+        return 0
+    input_rate, output_rate, cache_rate = rates
+    filled = 0
+    for row in rows:
+        for sample in row.get('usage') or []:
+            cache = sample.setdefault('prompt_cache', {})
+            if cache.get('reported_cost') is not None:
+                continue
+            prompt, completion = sample.get('input_tokens'), sample.get('output_tokens')
+            if type(prompt) not in (int, float) or type(completion) not in (int, float):
+                continue
+            cached = cache.get('cache_read_tokens')
+            cached = cached if type(cached) in (int, float) and cached >= 0 else 0
+            # input_tokens 含命中部分：只有未命中的那部分按原价计费。
+            billable = max(prompt - cached, 0)
+            cache['reported_cost'] = (billable * input_rate + cached * cache_rate
+                                      + completion * output_rate) / 1_000_000
+            cache['cost_source'] = 'computed'
+            filled += 1
+    return filled
+
+
 def summarize(manifest, rows):
+    apply_local_pricing(manifest, rows)
     expected={(c,s,r) for c in manifest['cases'] for s in manifest['strategies'] for r in range(manifest['repetitions'])}
     keys=[(r['case_id'],r['strategy'],r['repetition']) for r in rows]
     complete=set(keys)==expected and len(keys)==len(expected) and len(set(keys))==len(keys)

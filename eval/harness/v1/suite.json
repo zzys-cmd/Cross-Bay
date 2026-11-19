@@ -210,10 +210,13 @@
     "actual_total_token_reduction": 0.15
   },
   "pricing": {
-    "currency": null,
-    "source": null,
-    "verified_at": null,
-    "verified": false
+    "currency": "CNY",
+    "source": "千问 MaaS 控制台模型定价页（闲时档：输入 ¥1、输出 ¥4、缓存命中 ¥0.02 每百万 token）；忙时档为 ¥2 / ¥8 / ¥0.04，正好翻倍",
+    "verified_at": "2026-11-19",
+    "verified": true,
+    "input_per_million": 1.0,
+    "output_per_million": 4.0,
+    "cache_read_per_million": 0.02
   },
   "limits": [
     "不验证外部检索排序、真实支付物流或浏览器渲染",

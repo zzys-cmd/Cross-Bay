@@ -417,3 +417,36 @@ def test_black_sku_check_still_fails_when_a_black_sku_is_missing():
               {'sku_id':'P28254-S1','price_major':219.0,'currency':'USD'}]
     assert black_sku_set_complete('黑色有 P28252-S2 和 P28253-S1 两只', expected) is False
     assert black_sku_set_complete('', expected) is False
+
+
+PRICING={'currency':'CNY','source':'测试用定价','verified_at':'2026-11-19','verified':True,
+         'input_per_million':1.0,'output_per_million':4.0,'cache_read_per_million':0.02}
+
+
+def test_local_pricing_fills_cost_when_gateway_reports_none():
+    """网关只回 token 数时，按单价把未命中输入、缓存命中输入、输出分别计价。"""
+    from scripts.eval.harness.metrics import apply_local_pricing
+    rows=[{'usage':[{'input_tokens':1_000_000,'output_tokens':500_000,
+                    'prompt_cache':{'cache_read_tokens':800_000,'reported_cost':None}}]}]
+    assert apply_local_pricing({'pricing':dict(PRICING)}, rows)==1
+    cache=rows[0]['usage'][0]['prompt_cache']
+    # 未命中 20 万 × 1 + 命中 80 万 × 0.02 + 输出 50 万 × 4 = 0.2 + 0.016 + 2.0
+    assert abs(cache['reported_cost']-2.216)<1e-9
+    assert cache['cost_source']=='computed'
+
+
+def test_local_pricing_skips_unverified_or_incomplete_rates():
+    from scripts.eval.harness.metrics import apply_local_pricing
+    rows=[{'usage':[{'input_tokens':10,'output_tokens':10,'prompt_cache':{'reported_cost':None}}]}]
+    assert apply_local_pricing({'pricing':{**PRICING,'verified':False}}, rows)==0
+    unrated={k:v for k,v in PRICING.items() if k!='cache_read_per_million'}
+    assert apply_local_pricing({'pricing':unrated}, rows)==0
+    assert rows[0]['usage'][0]['prompt_cache']['reported_cost'] is None
+
+
+def test_local_pricing_keeps_gateway_reported_cost():
+    """网关确实给了金额时不重复折算。"""
+    from scripts.eval.harness.metrics import apply_local_pricing
+    rows=[{'usage':[{'input_tokens':10,'output_tokens':10,'prompt_cache':{'reported_cost':1.5}}]}]
+    assert apply_local_pricing({'pricing':dict(PRICING)}, rows)==0
+    assert rows[0]['usage'][0]['prompt_cache']['reported_cost']==1.5
