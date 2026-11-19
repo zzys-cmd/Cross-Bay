@@ -450,3 +450,29 @@ def test_local_pricing_keeps_gateway_reported_cost():
     rows=[{'usage':[{'input_tokens':10,'output_tokens':10,'prompt_cache':{'reported_cost':1.5}}]}]
     assert apply_local_pricing({'pricing':dict(PRICING)}, rows)==0
     assert rows[0]['usage'][0]['prompt_cache']['reported_cost']==1.5
+
+
+TAX_RULES=[['运费|配送费','26','4'],['税费|税额','4','26']]
+
+
+def test_association_check_ignores_values_from_a_parallel_scenario():
+    """答案并列给出另一个场景（运费38 + 税4）时，不能把税值当成本字段答案。"""
+    from scripts.eval.report_context import association_check
+    answer=('第1批历史报价：商品单价 CNY 153 - 运费：CNY 26 - 税费：CNY 4 - 到手总价：CNY 183。'
+            '另：寄英国条件下历史到手 CNY 195（运费38 + 税4 + 单价 153）。')
+    assert association_check('h1-hold-tax', answer, TAX_RULES)['status']=='passed'
+
+
+def test_association_check_still_rejects_swapped_values():
+    from scripts.eval.report_context import association_check
+    assert association_check('h1-hold-tax', '运费：CNY 4，税费：CNY 26，到手总价 183', TAX_RULES)['status']=='failed'
+
+
+def test_association_check_keeps_markdown_table_values():
+    """表格与并列项用竖线/顿号排版，不能被当成跨字段边界而切掉本字段的值。"""
+    from scripts.eval.report_context import association_check
+    table='| 项目 | 金额 |\n|---|---|\n| 运费 | 26 |\n| 税费 | 4 |'
+    assert association_check('h1-hold-tax', table, TAX_RULES)['status']=='passed'
+
+    parallel='运费 CNY 26、税费 CNY 4、到手总价 CNY 183'
+    assert association_check('h1-hold-tax', parallel, TAX_RULES)['status']=='passed'

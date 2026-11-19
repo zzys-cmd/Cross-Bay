@@ -33,7 +33,11 @@ def association_check(case_id,answer,rules=None):
             if postfix and clean[end:end+1] in {')','）'}:
                 evidence.append(postfix.group(1)==expected);continue
             boundary=min((pos for pos,_,other in anchors if pos>=end and other!=index),default=len(clean))
-            text=re.sub(r'P\d+(?:-S\d+)?','',clean[end:min(boundary,end+500)])
+            # 取值窗口止于本字段边界：并列加号两侧是不同场景的成对数值
+            # （如"运费38 + 税4"），不截断会把隔壁字段的值当成本字段答案。
+            # 不能用竖线/顿号/分号切分——答案常以表格或并列项列出，会把本字段的值一起切掉。
+            segment=re.split(r'[+＋]',clean[end:min(boundary,end+500)])[0]
+            text=re.sub(r'P\d+(?:-S\d+)?','',segment)
             # 属性先按锚点分区，再取本区首个目标数值，标题中的逗号不会拆断SKU与价格。
             match=re.search(r'(?<![0-9])('+re.escape(expected)+'|'+re.escape(wrong)+r')(?:\.0+)?(?![0-9.])',text)
             if match:evidence.append(match.group(1)==expected)
