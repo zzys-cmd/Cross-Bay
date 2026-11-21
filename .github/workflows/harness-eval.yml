@@ -63,6 +63,12 @@ jobs:
       REDIS_URL: ''
       LANGFUSE_SECRET_KEY: ''
       LANGFUSE_PUBLIC_KEY: ''
+      # 精排走独立服务（如硅基流动），与主模型网关不同源，必须单独配凭据。
+      # 未设 HARNESS_RERANKER_MODE 时保持 disabled，检索按向量分排序，与本地默认一致。
+      RERANKER_MODE: ${{ vars.HARNESS_RERANKER_MODE || 'disabled' }}
+      RERANKER_BASE_URL: ${{ secrets.HARNESS_RERANKER_BASE_URL }}
+      RERANKER_MODEL: ${{ vars.HARNESS_RERANKER_MODEL }}
+      RERANKER_API_KEY: ${{ secrets.HARNESS_RERANKER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -79,6 +85,18 @@ jobs:
             echo "::error title=评测凭据未配置::此 job 需要仓库 secret HARNESS_LLM_API_KEY 与 HARNESS_LLM_BASE_URL。缺失时按项目约定标记为未通过，不静默跳过。"
             exit 1
           fi
+      - name: 检查精排配置
+        if: vars.HARNESS_RERANKER_MODE == 'http'
+        env:
+          BASE: ${{ secrets.HARNESS_RERANKER_BASE_URL }}
+          KEY: ${{ secrets.HARNESS_RERANKER_API_KEY }}
+          MODEL: ${{ vars.HARNESS_RERANKER_MODEL }}
+        run: |
+          if [ -z "$BASE" ] || [ -z "$KEY" ] || [ -z "$MODEL" ]; then
+            echo "::error title=精排凭据未配置::RERANKER_MODE=http 但 HARNESS_RERANKER_BASE_URL / HARNESS_RERANKER_API_KEY / HARNESS_RERANKER_MODEL 有缺失。缺失时检索会静默退回按向量分排序，这轮结论不能用于判断精排效果。"
+            exit 1
+          fi
+
       - name: Real model evaluation
         env:
           HARNESS_PROFILE: ${{ inputs.profile || 'smoke' }}
