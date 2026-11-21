@@ -45,7 +45,9 @@ def association_check(case_id,answer,rules=None):
         # 只认第一处能取到值的提及：先答的是主答案，其后多为补充场景或
         # "不能沿用历史 26/4"这类否定说明，继续扫描会把它们当成反证。
         outcomes.append(evidence)
-    if case_id.endswith('hold-blue') and re.search(r'当前库存[^0-9]{0,12}'+re.escape(rules[0][1])+r'(?![0-9])',clean):outcomes=[False]
+    # 只在「当前库存」后紧跟数值时判错；「当前库存未知，不能沿用历史 74」是否定表述，
+    # 窗口内出现未/不/无即视为说明不是当前值，不按错配处理。
+    if case_id.endswith('hold-blue') and re.search(r'当前库存[^0-9未不无。；\n]{0,4}'+re.escape(rules[0][1])+r'(?![0-9])',clean):outcomes=[False]
     return {'applicable':True,'status':'failed' if False in outcomes else 'passed' if all(x is True for x in outcomes) else 'unknown','fields':outcomes}
 
 

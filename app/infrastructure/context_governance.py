@@ -678,7 +678,9 @@ class LayeredContextMiddleware(MiddlewareBase):
                 cfg = cfg.model_copy(update={'compression_prompt':cfg.compression_prompt + guidance})
                 attempts = []
                 try:
-                    for attempt in range(2):
+                    # 三次尝试：摘要须逐项与原文对账，模型偶发编造金额时多给一次机会，
+                    # 仍不合规就失败并保留诊断，不放宽校验。
+                    for attempt in range(3):
                         if attempt:
                             agent.state = summary_source_state.model_copy(deep=True)
                             retry_cfg = cfg.model_copy(update={'compression_prompt':cfg.compression_prompt + '\n上一次候选未通过格式或来源校验；请重新从原文提取，不参考失败候选，尤其不要猜测标识或数值。'})
