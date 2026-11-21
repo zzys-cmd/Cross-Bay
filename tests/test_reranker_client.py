@@ -40,6 +40,8 @@ async def test_full_reranker_endpoint_is_used_with_gateway_authorization(
             return FakeResponse()
 
     monkeypatch.setenv("LLM_API_KEY", "test-gateway-key")
+    # 显式置空：本机 .env 可能配了独立精排密钥，不清空会覆盖掉“复用网关密钥”这条断言。
+    monkeypatch.setenv("RERANKER_API_KEY", "")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv(
         "RERANKER_BASE_URL",

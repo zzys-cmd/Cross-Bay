@@ -76,6 +76,24 @@ def compare_runs(baseline, candidate, output, baseline_strategy='current', candi
     render(output,manifest,rows)
 
 
+def run_failed(manifest, result, require_benefit):
+    """判定一次运行是否应以非零退出。
+
+    发布档位（--require-benefit）以收益门禁为唯一判据：门禁已经覆盖 candidate 的
+    成功率、关键用例、成本与延迟。此前else分支的「任何一条失败即失败」会把另一套
+    策略（基线）或非关键场景的偶发失败算进来，从而否决一个已通过门禁的新方案。
+    非发布档位保持原严格行为，便于改代码后快速定位问题。
+    """
+    failed = (manifest.get('status') != 'completed'
+              or manifest.get('source_stable') is not True
+              or not result.get('matrix_complete'))
+    if require_benefit:
+        gates = result.get('gates') or {}
+        return failed or not gates or any(
+            gate['status'] != 'BENEFIT_VERIFIED' for gate in gates.values())
+    return failed or (result.get('failure_count') or 0) > 0
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     commands=parser.add_subparsers(dest='command',required=True)
@@ -98,8 +116,7 @@ def main():
             result=asyncio.run(run_profile(args.profile,args.output,suite_path=args.suite,
                 strategies=args.strategies.split(','),case_ids=args.case,skip_contracts=args.skip_contracts))
             manifest=json.loads((args.output/'manifest.json').read_text())
-            failed=manifest['status']!='completed' or manifest['source_stable'] is not True or not result['matrix_complete'] or result['failure_count']>0
-            if args.require_benefit:failed|=not result['gates'] or any(g['status']!='BENEFIT_VERIFIED' for g in result['gates'].values())
+            failed=run_failed(manifest,result,args.require_benefit)
             print('HTML: '+str((args.output/'report.html').resolve()))
             return 2 if failed else 0
         if args.command=='report':

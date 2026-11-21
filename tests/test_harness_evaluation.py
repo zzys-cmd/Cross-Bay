@@ -483,3 +483,75 @@ def test_association_check_ignores_numbers_inside_a_negated_note():
     answer=('| 项目 | 金额 |\n|---|---|\n| 运费 | CNY 26 |\n| 税费 | CNY 4 |\n\n'
             '当前寄英国的运费和税费：工具未返回明细，未知，不能沿用历史 26/4')
     assert association_check('h1-hold-tax', answer, TAX_RULES)['status']=='passed'
+
+
+OK_MANIFEST = {"status": "completed", "source_stable": True}
+
+
+def test_release_gate_ignores_baseline_strategy_failures():
+    """发布档位只认门禁：基线策略偶发失败不否决已通过的候选方案。"""
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 2,
+              "gates": {"candidate": {"status": "BENEFIT_VERIFIED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=True) is False
+
+
+def test_release_gate_blocks_when_any_gate_not_passed():
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 0,
+              "gates": {"candidate": {"status": "BLOCKED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=True) is True
+
+
+def test_non_release_run_still_requires_zero_failures():
+    """冒烟与调试档位保持严格，便于改代码后快速定位。"""
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 1,
+              "gates": {"candidate": {"status": "BENEFIT_VERIFIED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=False) is True
+
+
+def test_incomplete_or_unstable_run_always_fails():
+    from scripts.eval.harness.__main__ import run_failed
+    gates = {"candidate": {"status": "BENEFIT_VERIFIED"}}
+    assert run_failed(OK_MANIFEST, {"matrix_complete": False, "failure_count": 0, "gates": gates}, True) is True
+    assert run_failed({"status": "failed", "source_stable": True},
+                      {"matrix_complete": True, "failure_count": 0, "gates": gates}, True) is True
+    assert run_failed({"status": "completed", "source_stable": False},
+                      {"matrix_complete": True, "failure_count": 0, "gates": gates}, True) is True
+
+
+OK_MANIFEST = {"status": "completed", "source_stable": True}
+
+
+def test_release_gate_ignores_baseline_strategy_failures():
+    """发布档位只认门禁：基线策略偶发失败不否决已通过的候选方案。"""
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 2,
+              "gates": {"candidate": {"status": "BENEFIT_VERIFIED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=True) is False
+
+
+def test_release_gate_blocks_when_any_gate_not_passed():
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 0,
+              "gates": {"candidate": {"status": "BLOCKED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=True) is True
+
+
+def test_non_release_run_still_requires_zero_failures():
+    """冒烟与调试档位保持严格，便于改代码后快速定位。"""
+    from scripts.eval.harness.__main__ import run_failed
+    result = {"matrix_complete": True, "failure_count": 1,
+              "gates": {"candidate": {"status": "BENEFIT_VERIFIED"}}}
+    assert run_failed(OK_MANIFEST, result, require_benefit=False) is True
+
+
+def test_incomplete_or_unstable_run_always_fails():
+    from scripts.eval.harness.__main__ import run_failed
+    gates = {"candidate": {"status": "BENEFIT_VERIFIED"}}
+    assert run_failed(OK_MANIFEST, {"matrix_complete": False, "failure_count": 0, "gates": gates}, True) is True
+    assert run_failed({"status": "failed", "source_stable": True},
+                      {"matrix_complete": True, "failure_count": 0, "gates": gates}, True) is True
+    assert run_failed({"status": "completed", "source_stable": False},
+                      {"matrix_complete": True, "failure_count": 0, "gates": gates}, True) is True
