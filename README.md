@@ -1,6 +1,9 @@
 # CrossBay · 跨境电商选购 Agent
 
 [![tests](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml/badge.svg)](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab?logo=python&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/pyproject.toml)
+[![node](https://img.shields.io/badge/node-22-339933?logo=nodedotjs&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/frontend/package.json)
+[![docker](https://img.shields.io/badge/docker-compose-2496ed?logo=docker&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/docker/docker-compose.yaml)
 
 买家用一句话说需求，Agent 检索商品、算清运费税费、生成待确认订单。商品来自版本化样例目录（3700 件跨境商品），订单写在本地业务账本，尚未接入真实电商供给、支付与物流。
 
