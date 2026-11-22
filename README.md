@@ -1,17 +1,19 @@
 # CrossBay · 跨境电商选购 Agent
 
-[![tests](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml/badge.svg)](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml)
-[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab?logo=python&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/pyproject.toml)
-[![node](https://img.shields.io/badge/node-22-339933?logo=nodedotjs&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/frontend/package.json)
-[![docker](https://img.shields.io/badge/docker-compose-2496ed?logo=docker&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/docker/docker-compose.yaml)
+[![tests](https://img.shields.io/github/actions/workflow/status/zzys-cmd/Cross-Bay/tests.yml?style=flat-square&label=tests)](https://github.com/zzys-cmd/Cross-Bay/actions/workflows/tests.yml)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776ab?style=flat-square&logo=python&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/pyproject.toml)
+[![node](https://img.shields.io/badge/node-22-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/frontend/package.json)
+[![docker](https://img.shields.io/badge/docker-compose-2496ed?style=flat-square&logo=docker&logoColor=white)](https://github.com/zzys-cmd/Cross-Bay/blob/main/docker/docker-compose.yaml)
 
 买家用一句话说需求，Agent 检索商品、算清运费税费、生成待确认订单。商品来自版本化样例目录（3700 件跨境商品），订单写在本地业务账本，尚未接入真实电商供给、支付与物流。
 
-这个项目真正花时间的地方不在"接上大模型"，而在三件容易被跳过的事：
+这个项目真正花时间的地方不在“接上大模型”，而在三件容易被跳过的事：
 
-- **上下文治理**：长对话里工具结果会被裁掉，模型随后"忘了自己看过什么"。这里做分层上下文、检查点与工具证据保活，裁剪策略由评测判定，不靠拍脑袋。
-- **效果评测门禁**：改一句 prompt 可能让成功率掉 10 个点，而所有单测照样全绿。48 场景 × 2 策略 × 3 重复 = 198 次真实会话，配对比较 + 收益门禁，把"有没有变好"变成可判定结论。
-- **评测可重判**：每次运行的原始回答与证据轨迹都留档。判定标准调整后不必重跑模型（一次 1.5 小时、十几块钱），同一批回答只换标准重算，变量唯一。靠它先后发现多处判分缺陷；修复后 CI 留出集实跑 198 次零失败。
+| 问题 | 做法 | 结果 |
+| --- | --- | --- |
+| 长对话里工具结果被裁掉，模型随后“忘了自己看过什么” | 分层上下文、检查点与工具证据保活，裁剪策略由评测判定 | 缓存命中 45.9% → 67.7%，账单降 25.8% |
+| 改一句 prompt 可能让成功率掉 10 个点，而单测照样全绿 | 48 场景 × 2 策略 × 3 重复 = 198 次真实会话，配对比较 + 收益门禁 | 成本 ¥5.705 → ¥4.233，成功率无差异 |
+| 判定标准一改就得重跑模型，一次 1.5 小时、十几块钱 | 原始回答与证据轨迹全留档，只换标准重算，变量唯一 | 先后发现多处判分缺陷；最终 198 次零失败 |
 
 **技术栈**：AgentScope 2.x · FastAPI · AG-UI（SSE 流式）· React · SQLite · Qdrant
 
@@ -49,9 +51,9 @@
 
 PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
-![CrossBay PC 端首页：左侧导航与最近选购、选购主张、三个快捷入口、底部输入框与模型选择](assets/readme/crossbay-app-desktop-home.png)
-
-![CrossBay PC 端选购会话：需求气泡、工具调用步骤、12 件候选商品卡与底部输入框](assets/readme/crossbay-app-desktop-chat.png)
+| 首页 | 选购会话 |
+|:--:|:--:|
+| ![CrossBay PC 端首页：左侧导航与最近选购、选购主张、三个快捷入口、底部输入框与模型选择](assets/readme/crossbay-app-desktop-home.png) | ![CrossBay PC 端选购会话：需求气泡、工具调用步骤、12 件候选商品卡与底部输入框](assets/readme/crossbay-app-desktop-chat.png) |
 
 手机端七页总览（390 × 844 实际运行截图，汉堡菜单打开侧栏抽屉）：
 
@@ -239,14 +241,16 @@ flowchart TD
     Orchestrator -. OTLP .-> Trace[Langfuse / OTel Collector]
 ```
 
-- **前端与传输**：React 18、TypeScript、Vite；官方 `@ag-ui/client/core 0.0.59` 对接后端 `ag-ui-protocol 0.1.22`。组件消费结构化商品和确认数据，不从模型 Markdown 猜测价格、库存或订单状态。
-- **Agent 编排**：AgentScope 2.x，MainAgent 持有业务工具直接完成简单任务；需要并行、上下文隔离或长链时通过 `task_dispatch` 调用 SearchAgent/TradeAgent。子 Agent 与主 Agent 复用业务工具装配。
-- **业务分层**：DDD 洋葱架构。领域层定义实体和端口，应用层负责用例、工具与编排，基础设施层实现数据库、模型和检索适配，FastAPI 位于最外侧；`composition.py` 统一装配 API 与 worker。
-- **检索与知识**：版本化 JSONL 商品目录装入内存仓储；embedding → Qdrant → HTTP reranker，两级降级到向量排序或关键词。精确商品/SKU ID 可直接查权威目录；预算等硬约束由代码过滤。品类知识使用 Markdown + AgentScope KnowledgeBase。BM25/RRF Hybrid 已实现，默认关闭，尚未证明收益。
-- **上下文与记忆**：偏好经模型提炼后与向量原子持久化，通过 AgentScope 2.x MiddlewareBase 在每轮语义召回并注入独立 hint；个人 Skill 常驻元数据，正文按需加载。工具完整证据与模型决策投影分离，支持证据回查、清理和压缩；预算不足时规则回复收口。Prompt 与工具合同版本绑定会话。
-- **模型配置与计数**：[ModelRegistry](app/infrastructure/model_registry.py) 统一读取内置目录和买家配置；会话选择、每轮执行快照、窗口及思考参数持久化。AgentScope 的 `count_tokens` 接口委托 [计数适配层](app/infrastructure/model_counting.py)，页面圆环与容量检查共用模型身份和计数口径；回退模型独立核验容量并记录消耗。
-- **交易与可靠性**：确认、幂等操作、订单与库存由 SQLite 事务提交；会话 lease/fencing/CAS 防并发旧写。队列具备 pending 回收、死信与归档。网关并发、重试、熔断和 Harness 约束工具及模型执行。
-- **观测与评测**：OTel/OTLP 关联 API、Agent、模型、工具，队列路径传播 Trace 上下文；Langfuse 可接收追踪与评分。独立 dev/release 数据、运行清单和门禁保留真实失败，不用单测通过代替效果达标。
+| 层 | 职责 | 关键约束 |
+| --- | --- | --- |
+| 前端与传输 | React 18 + TS + Vite；官方 `@ag-ui/client/core 0.0.59` 对接 `ag-ui-protocol 0.1.22` | 消费结构化商品与确认数据，不从 Markdown 猜价格、库存或订单状态 |
+| Agent 编排 | AgentScope 2.x；MainAgent 持业务工具直接完成简单任务，需要并行、隔离或长链时 `task_dispatch` 派发 SearchAgent / TradeAgent | 子 Agent 与主 Agent 复用同一套工具装配 |
+| 业务分层 | DDD 洋葱：domain 定实体与端口 → application 承载用例与编排 → infrastructure 实现数据库、模型、检索 → FastAPI 在最外侧 | [`composition.py`](app/composition.py) 统一装配 API 与 worker |
+| 检索与知识 | 版本化 JSONL 目录装入内存仓储；embedding → Qdrant → HTTP reranker，两级降级到向量排序或关键词；品类知识用 Markdown + KnowledgeBase | 精确 SKU 直查权威目录，预算等硬约束由代码过滤；BM25/RRF 已实现但默认关闭 |
+| 上下文与记忆 | 偏好提炼后与向量原子持久化，每轮语义召回注入 hint；Skill 元数据常驻、正文按需；工具证据与决策投影分离 | 预算不足时规则回复收口；Prompt 与工具合同版本绑定会话 |
+| 模型配置与计数 | [`ModelRegistry`](app/infrastructure/model_registry.py) 统读内置目录与买家配置，每轮冻结快照 | [`计数适配层`](app/infrastructure/model_counting.py) 让页面圆环与容量检查共用同一口径 |
+| 交易与可靠性 | 确认、幂等、订单与库存走 SQLite 事务；会话 lease/fencing/CAS 防并发旧写 | 队列有 pending 回收、死信与归档；网关并发、重试、熔断约束工具与模型执行 |
+| 观测与评测 | OTel/OTLP 关联 API、Agent、模型、工具；Langfuse 接收追踪与评分 | 独立 dev/release 数据集与门禁保留真实失败，不用单测通过代替效果达标 |
 
 **两条执行路径要分清**：当前网页的 AG-UI 请求在 API 进程直接执行，运行结果写持久日志；`QUEUE_ENABLED=1` 不会把这条路径自动转交 worker。Redis 队列用于旧 `/commerce/intents` 与异步任务入口，未启用队列时旧同步入口也在 API 进程执行。AG-UI 为保留商品等结构化事实，不使用只缓存最终文本的语义回复缓存。
 
