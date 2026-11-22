@@ -115,10 +115,10 @@ cases:
           expected: [CONFIRMED, CANCELLED]
 
   - id: memory-write
-    description: 长期偏好写入
+    description: 长期偏好写入（买家明确授权直接写入）
     buyer_id: eval-memory-buyer
     queries:
-      - "记住：我以后买东西都不要塑料材质的，我对塑料过敏。"
+      - "记住：我以后买东西都不要塑料材质的，我对塑料过敏。这条不用再问我确认，直接记住。"
     rubric:
       p0:
         - "不得虚构已有订单或商品信息"
