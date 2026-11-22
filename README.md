@@ -303,12 +303,15 @@ Token 计数仍通过 AgentScope：默认是 SDK 估算加同模型、同网关�
 | 本地向量索引 | `data/qdrant/`；配置 Qdrant 服务端时由该服务保存 |
 | 队列终态归档 | `data/queue_archive.db`；启用队列时使用 |
 | 心选收藏 | `data/buyer_favorites.db`，按 `buyer_id` 保存和查询 |
+| 工具证据回查 | `data/context_evidence.db`；上下文裁剪后按证据引用回查原始结果 |
+| 结构化选购表单 | `data/shopping_forms.db`；澄清需求生成的表单与提交状态 |
+| Skill 建议 | `data/skill_suggestions.db`；从对话提炼的建议与采纳记录 |
 | 近期会话显示缓存、当前会话指针 | 浏览器 `localStorage`，只作加速；无缓存时仍从数据库恢复默认买家 |
 | 当前导航位置 | 当前标签页 `sessionStorage`；刷新保留 |
 
 `DATABASE_URL=file` 只将会话、流水和偏好切到 JSON Store，交易仍保存到独立 `trade.db`，AG-UI、个人 Skill 和新的语义记忆也仍用各自 SQLite 库。模型管理与会话模型选择依赖 SQL 会话绑定，默认 SQLite 模式支持；旧 file 模式不提供这些功能，模型接口会明确返回不可用，不回退成仅浏览器保存。
 
-默认固定用户 `pao-coder`，不实现额外账号系统。初始化按用户从数据库读取会话目录，恢复有效的当前会话，指针无效或空草稿则恢复最近持久会话。偏好、个人 Skill、订单和收藏均按相同用户查询；清除浏览器缓存不会更换默认用户。开发隔离测试可显式配置 `VITE_BUYER_ID`。前后端都需保留原有数据与身份，不要通过删除 `data/`“修复”启动问题。备份可先停止写入进程再复制整个数据目录；运行中备份 SQLite 应使用一致性备份方法，不能只拷主文件忽略 WAL。
+默认固定用户 `ycx`（见 `frontend/src/lib/buyerIdentity.ts`），不实现额外账号系统。初始化按用户从数据库读取会话目录，恢复有效的当前会话，指针无效或空草稿则恢复最近持久会话。偏好、个人 Skill、订单和收藏均按相同用户查询；清除浏览器缓存不会更换默认用户。开发隔离测试可显式配置 `VITE_BUYER_ID`。前后端都需保留原有数据与身份，不要通过删除 `data/`“修复”启动问题。备份可先停止写入进程再复制整个数据目录；运行中备份 SQLite 应使用一致性备份方法，不能只拷主文件忽略 WAL。
 
 恢复自定义模型配置时同时需要原加密数据库和原主密钥，建议分开保管。自动生成的密钥目录权限为700、密钥文件为600；远端部署宜用独立 Secret 管理提供 `MODEL_MASTER_KEY`。直接换一把主密钥无法解密旧凭据，不是密钥轮换流程。
 
@@ -436,10 +439,29 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 ## 评测体系现状
 
-仓库里有两套评测，来源和状态不同：
+仓库内的评测按证据强度分三层，引用时请按所在层选择措辞。
 
-- **Harness 上下文评测**（当前维护）：48 场景 × 2 策略 × 3 重复 = 198 次真实会话，CI 可触发，结果归档在 [eval-reports/](eval-reports/)。这是本项目对外引用的效果依据。
-- **早期评测**（初始版本自带）：商品检索、记忆提炼、Skill 执行、上下文等评测的数据与脚本保留在 `eval/` 与 `scripts/eval/`，本仓库尚未执行完整留出，不作为当前效果依据。前端「检索评测」页展示的是其中商品检索部分的指标定义，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
+**第一层：可复现**——源码快照、调用账本、逐条结果齐全，脚本在仓库内，换环境可重跑。
+
+| 评测 | 规模 | 结论 | 位置 |
+| --- | --- | --- | --- |
+| Harness 上下文 | 48 场景 × 2 策略 × 3 重复 = 198 次 | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%） | `eval-reports/`、`eval/verification/ci-release-*` |
+| Rubric 回归 | 13 条 | 10/13 通过，平均 0.885 | `eval/verification/rubric-20261122-run3/` |
+| 词法检索对照 | 72 条查询 | keyword Recall@5 92.19%；BM25 92.71% 但 NDCG 降 3.3pp | `eval/verification/retrieval-standard-v1-20261122/` |
+
+**第二层：历史实验，结果有据、原料不可得**——报告保留完整指标，但当时的商品库、数据集或运行环境未随仓库留档，无法原地复现。
+
+| 评测 | 规模 | 结论 | 不可复现的原因 |
+| --- | --- | --- | --- |
+| Dense 检索留出 | 留出集 | Recall@5 65.63% → 98.96%，NDCG@5 0.657 → 0.903 | 当时商品库未留档 |
+| ESCI 生产检索 | 300 条 / 10 万商品 | 加精排后 MRR 0.611 → 0.682、nDCG@8 0.338 → 0.395 | 10 万商品库与 ESCI 映射脚本未留档；脚本路径绑在容器内 |
+| 上下文专项（2026-09-10） | 360 次（开发 108 + 留出 252） | 分层策略被门禁拦下（BLOCK），token 上涨约 15%，普通轮 P95 从 29.3s 降到 9.8s | 早于当前留档规范，无源码快照 |
+
+**第三层：只有代码，未执行**——脚本与数据集在仓库内，但本仓库没有对应产物，不能引用为效果依据。
+
+Skill 600 条分场景评测（仅跑过数据校验）、数据质量校验、Prompt 缓存专项。
+
+前端「检索评测」页展示的是第二层商品检索部分的指标定义，可读取 `eval/verification/retrieval-standard/` 下所有历史 `report.json` 做基线／候选对照；指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
 
 ## 代码与接口导航
 
@@ -453,7 +475,7 @@ app/worker.py        Redis 意图消费者
 frontend/            React 页面（components / hooks / lib）、AG-UI 客户端与前端测试
 configs/models.yaml  当前模型迁移模板、窗口档位与计数默认配置
 knowledge/           品类知识及来源清单
-data/catalog-v3.jsonl 当前多语言样例目录；v1/v2 保留为历史评测底座
+data/catalog-v3.jsonl 当前样例目录（3700 件）；v1（500 件）、v2（1000 件）为历史商品目录
 其它 data 内容       会话、订单、偏好等运行态数据
 scripts/             冒烟、评测、版本管理、身份 token 等 CLI
 tests/               后端回归与前端单测
