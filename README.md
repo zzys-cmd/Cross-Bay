@@ -57,9 +57,7 @@ PC 端（1440 × 900 实际渲染，左侧导航常驻）：
 
 手机端七页总览（390 × 844 实际运行截图，汉堡菜单打开侧栏抽屉）：
 
-| 七页总览 |
-|:--:|
-| ![CrossBay 手机端七页：新的选购、选购会话、订单与收藏、我的 Skill、长期偏好、自动化、检索评测](assets/readme/crossbay-app-mobile-overview.png) |
+<p align="center"><img src="assets/readme/crossbay-app-mobile-overview.png" width="620" alt="CrossBay 手机端七页：新的选购、选购会话、订单与收藏、我的 Skill、长期偏好、自动化、检索评测"></p>
 
 
 ## 先选一种启动方式
