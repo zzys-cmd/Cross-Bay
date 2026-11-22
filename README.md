@@ -413,20 +413,36 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 ## 代码与接口导航
 
 ```text
-app/domain/          领域模型与仓储、队列、会话端口
-app/application/     Agent 编排、工具、用例、Prompt、Harness
-app/infrastructure/  模型/检索/存储/缓存/队列/观测及版本库
+app/domain/          领域模型与仓储、队列、会话端口（buyer / catalog / order / shipping / session / queue / automation）
+app/application/     Agent 编排、工具、用例、Prompt、记忆提炼、Harness
+app/infrastructure/  模型、检索（embedding / rag / rerank）、存储、缓存、队列、观测、安全与版本库
 app/presentation/    FastAPI、AG-UI、买家工作区、确认与身份接口
 app/composition.py   依赖装配
 app/worker.py        Redis 意图消费者
-frontend/            React 页面、AG-UI 客户端与前端测试
+frontend/            React 页面（components / hooks / lib）、AG-UI 客户端与前端测试
 configs/models.yaml  当前模型迁移模板、窗口档位与计数默认配置
 knowledge/           品类知识及来源清单
 data/catalog-v3.jsonl 当前多语言样例目录；v1/v2 保留为历史评测底座
 其它 data 内容       会话、订单、偏好等运行态数据
 scripts/             冒烟、评测、版本管理、身份 token 等 CLI
-tests/、eval/        后端回归、冻结用例与验收证据
+tests/               后端回归与前端单测
+eval/                冻结用例、运行目录与原始验收证据（本地留存，不入库）
+eval-reports/        留出集评测报告归档（report.html、summary.json），随仓库长期保留
+docs/                改动记录与方法说明（本地留存，不入库）
 docker/              全栈 Compose 配置
 ```
 
-主要 API 分组：`/commerce/ag-ui/run`、`/commerce/ag-ui/runs/*`、`/commerce/ag-ui/sessions/*`；`/commerce/skills` 与 `/commerce/my-skills`；`/commerce/preferences` 与 `/commerce/favorites`；`/commerce/confirmations/*` 与 `/commerce/orders/*`；`/commerce/models`、`/commerce/model-connections*`、`/commerce/sessions/{id}/model` 与 `/commerce/context`；兼容入口 `/commerce/intents`、`/commerce/intents/async`、`/commerce/tasks/{id}` 和 WebSocket `/commerce/events`。以运行服务的 `/docs` 查看方法、参数和身份要求。
+主要 API 分组：
+
+- **对话**：`/commerce/ag-ui/run`、`/commerce/ag-ui/runs/*`（`cancel`、`events`、`tools/{tool_call_id}/products`）、`/commerce/ag-ui/sessions/*`（含 `batch-delete`）
+- **Skill**：`/commerce/skills`、`/commerce/my-skills/*`、`/commerce/skill-suggestions/*`
+- **偏好与收藏**：`/commerce/preferences`（含 `{memory_id}/history`）、`/commerce/favorites`
+- **选购与交易**：`/commerce/shopping-forms/*`、`/commerce/confirmations/*`、`/commerce/orders/*`
+- **自动化**：`/commerce/automations`、`/commerce/automations/{identity}/*`、`/commerce/automation-runs/*`
+- **学习回流**：`/commerce/learning-review`、`/commerce/learning-review/candidates/{id}/*`
+- **模型与上下文**：`/commerce/models`、`/commerce/model-connections*`、`/commerce/sessions/{id}/model`、`/commerce/context`
+- **身份**：`/commerce/auth/login`、`/commerce/auth/me`
+- **检索评测**：`/commerce/retrieval-evaluation`
+- **兼容入口**：`/commerce/intents`、`/commerce/intents/async`、`/commerce/tasks/{id}`、WebSocket `/commerce/events`
+
+以运行服务的 `/docs` 查看方法、参数和身份要求。
