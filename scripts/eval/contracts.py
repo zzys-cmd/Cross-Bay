@@ -67,15 +67,7 @@ def validate_judge_output(raw: Any, rubric: dict[str, list[str]]) -> dict[str, l
                 raise JudgeOutputError(f"{level}.{criterion} 的 reason 不能为空")
             if type(passed) is not bool:
                 raise JudgeOutputError(f"{level}.{criterion} 的 pass 必须是布尔值")
-            try:
-                _assert_reason_matches_pass(reason, passed, level, criterion)
-            except JudgeOutputError as error:
-                # 判官偶发省略结尾结论时，pass 字段才是判定依据：按它补一句再校验，
-                # 避免整题 ERROR。文字与 pass 自相矛盾的情况仍然拒绝。
-                if "缺少显式结论" not in str(error):
-                    raise
-                reason = f"{reason.strip()} 结论：{'通过' if passed else '不通过'}"
-                _assert_reason_matches_pass(reason, passed, level, criterion)
+            _assert_reason_matches_pass(reason, passed, level, criterion)
             checked.append({"criterion": criterion, "reason": reason.strip(), "pass": passed})
 
         if Counter(item["criterion"] for item in checked) != Counter(expected):
