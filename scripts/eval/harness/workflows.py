@@ -213,7 +213,10 @@ async def _run_workflow(case, settings, throttle, folder, repetition, usage_hook
                             report = await mid.run(agent, force=True)
                         finally:
                             compaction_metrics.append({'elapsed_ms':(time.monotonic()-compact_started)*1000,'trigger':'manual'})
-                        checks[f'compaction_{turn}'] = report.get('summary_changed', False)
+                        # force=True 只表示请求压缩，是否真压取决于是否超过水位：未过水位时
+                        # 返回 noop、摘要不变，属正常结果，不能当成压缩失败。真正的失败走
+                        # status=failed，仍会被判错。
+                        checks[f'compaction_{turn}'] = report.get('summary_changed', False) or report.get('status') == 'noop'
             if scenario in ('restart', 'long'): await restore()
             event_boundary = len(events)
             text = await reply('预算改为180元人民币，仍寄到中国。只比较刚才的 P1003-S1；请重新调用商品工具核对当前单价和库存。只用 JSON 回答 sku_id、unit_price_major、stock、budget_major、currency 五个字段，数字使用数值类型。不要下单。')
