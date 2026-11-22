@@ -32,6 +32,7 @@
 - [先选一种启动方式](#先选一种启动方式)
   - [让 Codex 帮忙跑起来](#让-codex-帮忙跑起来)
   - [本机启动：推荐开发路径](#本机启动推荐开发路径)
+  - [方式三：Docker Compose](#方式三docker-compose)
 - [页面能做什么](#页面能做什么)
 - [商品检索优化标准与可视化](#商品检索优化标准与可视化)
 - [技术架构与请求路径](#技术架构与请求路径)
@@ -39,7 +40,6 @@
 - [上下文整理与长对话](#上下文整理与长对话)
 - [数据保存在哪里](#数据保存在哪里)
 - [可选配置与前置依赖](#可选配置与前置依赖)
-- [Docker Compose 启动](#docker-compose-启动)
 - [验证与排错](#验证与排错)
 - [策略提炼与失败数据回流](#策略提炼与失败数据回流)
   - [Skill 600 条分场景评测](#skill-600-条分场景评测)
@@ -152,6 +152,31 @@ npm --prefix frontend run preview -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
 先确认 5174 没有现有服务。Preview 使用 `dist/`，修改源码后需重新 build 并刷新页面。
+
+### 方式三：Docker Compose
+
+需要先在根目录准备 `.env` 与可用模型凭据（配置项见[可选配置与前置依赖](#可选配置与前置依赖)），确认 5173、8000、6333、6379 未被其它服务占用：
+
+```bash
+docker compose --env-file .env -f docker/docker-compose.yaml config --quiet
+docker compose --env-file .env -f docker/docker-compose.yaml up -d --build
+docker compose --env-file .env -f docker/docker-compose.yaml ps
+docker compose --env-file .env -f docker/docker-compose.yaml logs --tail 100 app worker
+```
+
+访问 [http://127.0.0.1:5173](http://127.0.0.1:5173)。包含 API、worker、Qdrant、Redis 和 Nginx 静态前端；Nginx 同源代理 API 并关闭 SSE 缓冲。`config --quiet` 只验证配置，避免将展开后的密钥打印出来。
+
+Compose 用 `app-data`、`qdrant-data`、`redis-data` 命名卷，**不会自动读取本机 `data/` 中的买家记录或已发布方案**。不要直接沿用本机 `DATABASE_URL`、`DATA_DIR`、`PROMPT_PIN_VERSION`；容器路径与版本库需要对应。镜像包含 `configs/models.yaml`；模型库与自动生成的主密钥持久保存到 `app-data`。API 与 worker 已共用透传 `MODEL_MASTER_KEY`、`MODEL_ADMIN_BUYERS`、`MODEL_ALLOWED_LOCAL_HOSTS`、`MODEL_RECOVERY_MODE`、`LLM_ENABLE_THINKING` 和 `LLM_FALLBACK_CONTEXT_SIZE`；可选窗口留空按默认规则处理，`LLM_FALLBACK_MODEL=` 明确关闭回退。独立 `EMBEDDING_BASE_URL/API_KEY` 也已透传；其它字段须核对 Compose，不能假定 `.env` 中所有变量都会自动进入容器。
+
+通过 Nginx/容器访问时，API 看到的是代理地址，不能作为本机演示管理授权。需要页面添加或编辑连接时，请采用签名身份模式和 `MODEL_ADMIN_BUYERS`，并配置允许的浏览器来源；不要通过信任任意转发地址绕过管理检查。
+
+暂停并保留数据：
+
+```bash
+docker compose --env-file .env -f docker/docker-compose.yaml down
+```
+
+不要加 `-v`，该参数会删除命名卷。容器内不要用 `localhost` 访问宿主机模型服务，应使用部署环境可达的地址。
 
 ## 页面能做什么
 
@@ -311,31 +336,6 @@ Token 计数仍通过 AgentScope：默认是 SDK 估算加同模型、同网关�
 
 Langfuse 只需填写上表中的三项配置，即可自动生成 OTLP 导出地址和认证头。配置后发送一次真实页面请求，再到对应项目核对 Trace；本地启动成功不代表远端已收到数据。
 
-## Docker Compose 启动
-
-在根目录准备好 `.env` 与可用模型凭据，确认 5173、8000、6333、6379 未被其它服务占用：
-
-```bash
-docker compose --env-file .env -f docker/docker-compose.yaml config --quiet
-docker compose --env-file .env -f docker/docker-compose.yaml up -d --build
-docker compose --env-file .env -f docker/docker-compose.yaml ps
-docker compose --env-file .env -f docker/docker-compose.yaml logs --tail 100 app worker
-```
-
-访问 [http://127.0.0.1:5173](http://127.0.0.1:5173)。包含 API、worker、Qdrant、Redis 和 Nginx 静态前端；Nginx 同源代理 API 并关闭 SSE 缓冲。`config --quiet` 只验证配置，避免将展开后的密钥打印出来。
-
-Compose 用 `app-data`、`qdrant-data`、`redis-data` 命名卷，**不会自动读取本机 `data/` 中的买家记录或已发布方案**。不要直接沿用本机 `DATABASE_URL`、`DATA_DIR`、`PROMPT_PIN_VERSION`；容器路径与版本库需要对应。镜像包含 `configs/models.yaml`；模型库与自动生成的主密钥持久保存到 `app-data`。API 与 worker 已共用透传 `MODEL_MASTER_KEY`、`MODEL_ADMIN_BUYERS`、`MODEL_ALLOWED_LOCAL_HOSTS`、`MODEL_RECOVERY_MODE`、`LLM_ENABLE_THINKING` 和 `LLM_FALLBACK_CONTEXT_SIZE`；可选窗口留空按默认规则处理，`LLM_FALLBACK_MODEL=` 明确关闭回退。独立 `EMBEDDING_BASE_URL/API_KEY` 也已透传；其它字段须核对 Compose，不能假定 `.env` 中所有变量都会自动进入容器。
-
-通过 Nginx/容器访问时，API 看到的是代理地址，不能作为本机演示管理授权。需要页面添加或编辑连接时，请采用签名身份模式和 `MODEL_ADMIN_BUYERS`，并配置允许的浏览器来源；不要通过信任任意转发地址绕过管理检查。
-
-暂停并保留数据：
-
-```bash
-docker compose --env-file .env -f docker/docker-compose.yaml down
-```
-
-不要加 `-v`，该参数会删除命名卷。容器内不要用 `localhost` 访问宿主机模型服务，应使用部署环境可达的地址。
-
 ## 验证与排错
 
 按当前代码和环境执行以下检查，分别查看后端测试、前端测试、生产构建及数据校验结果。历史阶段的通过数量不能替代当前版本验收；测试跳过、外部服务失败与效果门禁未通过应分别记录。
@@ -453,15 +453,18 @@ docker/              全栈 Compose 配置
 
 主要 API 分组：
 
-- **对话**：`/commerce/ag-ui/run`、`/commerce/ag-ui/runs/*`（`cancel`、`events`、`tools/{tool_call_id}/products`）、`/commerce/ag-ui/sessions/*`（含 `batch-delete`）
-- **Skill**：`/commerce/skills`、`/commerce/my-skills/*`、`/commerce/skill-suggestions/*`
-- **偏好与收藏**：`/commerce/preferences`（含 `{memory_id}/history`）、`/commerce/favorites`
-- **选购与交易**：`/commerce/shopping-forms/*`、`/commerce/confirmations/*`、`/commerce/orders/*`
-- **自动化**：`/commerce/automations`、`/commerce/automations/{identity}/*`、`/commerce/automation-runs/*`
-- **学习回流**：`/commerce/learning-review`、`/commerce/learning-review/candidates/{id}/*`
-- **模型与上下文**：`/commerce/models`、`/commerce/model-connections*`、`/commerce/sessions/{id}/model`、`/commerce/context`
-- **身份**：`/commerce/auth/login`、`/commerce/auth/me`
-- **检索评测**：`/commerce/retrieval-evaluation`
-- **兼容入口**：`/commerce/intents`、`/commerce/intents/async`、`/commerce/tasks/{id}`、WebSocket `/commerce/events`
+| 前缀 | 说明 | 代表接口 |
+| --- | --- | --- |
+| `/commerce/ag-ui` | 对话运行、SSE 事件流、会话管理与批量删除 | `/commerce/ag-ui/run`、`/commerce/ag-ui/runs/{run_id}/events` |
+| `/commerce/skills`、`/my-skills`、`/skill-suggestions` | Skill 目录、个人 Skill、建议生成与采纳 | `/commerce/my-skills`、`/commerce/skill-suggestions/analyze` |
+| `/commerce/preferences`、`/favorites` | 长期偏好（含变更历史）、收藏 | `/commerce/preferences`、`/commerce/preferences/{memory_id}/history` |
+| `/commerce/shopping-forms` | 结构化选购表单 | `/commerce/shopping-forms/{form_id}/actions` |
+| `/commerce/confirmations`、`/orders` | 待确认动作、订单查询与取消 | `/commerce/confirmations/{id}/resolve`、`/commerce/orders/{order_id}/cancel` |
+| `/commerce/automations`、`/automation-runs` | 自动化任务模板、预览、运行与动作 | `/commerce/automations/preview`、`/commerce/automation-runs/{identity}` |
+| `/commerce/learning-review` | 学习候选的校验、审核、发布、撤回 | `/commerce/learning-review/candidates/{id}/publish` |
+| `/commerce/models`、`/model-connections` | 模型库、连接管理、会话模型切换、上下文设置 | `/commerce/models`、`/commerce/sessions/{session_id}/model` |
+| `/commerce/auth` | 登录与当前身份 | `/commerce/auth/login`、`/commerce/auth/me` |
+| `/commerce/retrieval-evaluation` | 检索评测页所需数据 | `/commerce/retrieval-evaluation` |
+| `/commerce/intents`、`/tasks`、`/events` | 兼容入口与 WebSocket 事件 | `/commerce/intents/async`、`WS /commerce/events` |
 
 以运行服务的 `/docs` 查看方法、参数和身份要求。
