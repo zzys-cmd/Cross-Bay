@@ -1,0 +1,366 @@
+{
+  "matrix_complete": true,
+  "missing": [],
+  "strategies": {
+    "current": {
+      "runs": 99,
+      "passed": 99,
+      "success_rate": 1,
+      "input_tokens": {
+        "total": 9058305,
+        "observed_sum": 9058305,
+        "known": 1182,
+        "unknown": 0
+      },
+      "output_tokens": {
+        "total": 180246,
+        "observed_sum": 180246,
+        "known": 1182,
+        "unknown": 0
+      },
+      "total_tokens": {
+        "total": 9238551,
+        "observed_sum": 9238551,
+        "known": 1182,
+        "unknown": 0
+      },
+      "cache_read_tokens": {
+        "total": 4157696,
+        "observed_sum": 4157696,
+        "known": 1182,
+        "unknown": 0
+      },
+      "cache_write_tokens": {
+        "total": null,
+        "observed_sum": null,
+        "known": 0,
+        "unknown": 1182
+      },
+      "reported_cost": {
+        "total": 5.70474692,
+        "observed_sum": 5.70474692,
+        "known": 1182,
+        "unknown": 0
+      },
+      "physical_model_calls": 1182,
+      "summary_calls": 42,
+      "lookup_calls": 53,
+      "ordinary_round_p95_ms": 6397.699445000171,
+      "compacted_round_p95_ms": null,
+      "manual_compaction_p95_ms": 6616.3062380001065,
+      "usage_by_kind": {
+        "business": {
+          "input_tokens": {
+            "total": 8830089,
+            "observed_sum": 8830089,
+            "known": 1140,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 138878,
+            "observed_sum": 138878,
+            "known": 1140,
+            "unknown": 0
+          }
+        },
+        "summary": {
+          "input_tokens": {
+            "total": 228216,
+            "observed_sum": 228216,
+            "known": 42,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 41368,
+            "observed_sum": 41368,
+            "known": 42,
+            "unknown": 0
+          }
+        }
+      },
+      "model_ttft_p95_ms": 3401.9098550006674,
+      "model_ttft_known_calls": 62,
+      "scenario_p95_ms": 111041,
+      "by_layer": {
+        "context": {
+          "runs": 84,
+          "passed": 84
+        },
+        "agent": {
+          "runs": 15,
+          "passed": 15
+        },
+        "cache_replay": {
+          "runs": 0,
+          "passed": 0
+        },
+        "skill_replay": {
+          "runs": 0,
+          "passed": 0
+        }
+      },
+      "peak_actual_input": 24303,
+      "mean_final_context_estimated_tokens": 29034.571428571428,
+      "mean_final_product_duplicate_ratio": 0.43154761904761907,
+      "loop_notices": 0,
+      "error_runs": 0,
+      "model_contract": {
+        "observed_calls": 1182,
+        "response_models": [
+          "deepseek-v4.1-flash"
+        ],
+        "unknown_identity_calls": 0,
+        "mismatched_identity_calls": 0,
+        "protocol_violation_calls": 0,
+        "unknown_protocol_calls": 0
+      },
+      "cache_read_ratio": 0.4589927144206339,
+      "prefix_diagnostics": {
+        "observed_calls": 1182,
+        "comparable_calls": 1053,
+        "system_changes": 486,
+        "tool_changes": 0,
+        "history_rewrites": 487,
+        "append_calls": 566
+      },
+      "replay_stage_ttft_p95_ms": {
+        "initial": null,
+        "followup": null,
+        "after_rebuild": null
+      },
+      "efficiency_diagnostics": {
+        "lookup_observed": 53,
+        "lookup_errors": 0,
+        "lookup_normalized": 0,
+        "lookup_pages_with_more": 0,
+        "state_emitted": null,
+        "state_skipped": null,
+        "prune_rewrites": 472,
+        "archived_results": 1668,
+        "request_reasons": {
+          "buyer_request": 573,
+          "lookup_followup": 39,
+          "tool_followup": 528
+        },
+        "estimated_sections": {
+          "system": 1664349,
+          "state": 0,
+          "product": 10379391,
+          "history": 2812383,
+          "tool_schema": 1828320
+        },
+        "measured_requests": 1140,
+        "visible_evidence_answers": 0,
+        "model_elapsed_p95_ms": 3640.386271999887,
+        "after_first_text_p95_ms": 1477.0799530000431
+      },
+      "coverage_complete": true
+    },
+    "candidate": {
+      "runs": 99,
+      "passed": 99,
+      "success_rate": 1,
+      "input_tokens": {
+        "total": 10621936,
+        "observed_sum": 10621936,
+        "known": 1185,
+        "unknown": 0
+      },
+      "output_tokens": {
+        "total": 164108,
+        "observed_sum": 164108,
+        "known": 1185,
+        "unknown": 0
+      },
+      "total_tokens": {
+        "total": 10786044,
+        "observed_sum": 10786044,
+        "known": 1185,
+        "unknown": 0
+      },
+      "cache_read_tokens": {
+        "total": 7189504,
+        "observed_sum": 7189504,
+        "known": 1185,
+        "unknown": 0
+      },
+      "cache_write_tokens": {
+        "total": null,
+        "observed_sum": null,
+        "known": 0,
+        "unknown": 1185
+      },
+      "reported_cost": {
+        "total": 4.2326540800000005,
+        "observed_sum": 4.2326540800000005,
+        "known": 1185,
+        "unknown": 0
+      },
+      "physical_model_calls": 1185,
+      "summary_calls": 42,
+      "lookup_calls": 41,
+      "ordinary_round_p95_ms": 6156.903330000205,
+      "compacted_round_p95_ms": null,
+      "manual_compaction_p95_ms": 6330.392468999889,
+      "usage_by_kind": {
+        "business": {
+          "input_tokens": {
+            "total": 10327206,
+            "observed_sum": 10327206,
+            "known": 1143,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 125426,
+            "observed_sum": 125426,
+            "known": 1143,
+            "unknown": 0
+          }
+        },
+        "summary": {
+          "input_tokens": {
+            "total": 294730,
+            "observed_sum": 294730,
+            "known": 42,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 38682,
+            "observed_sum": 38682,
+            "known": 42,
+            "unknown": 0
+          }
+        }
+      },
+      "model_ttft_p95_ms": 2672.245548999854,
+      "model_ttft_known_calls": 62,
+      "scenario_p95_ms": 111014,
+      "by_layer": {
+        "context": {
+          "runs": 84,
+          "passed": 84
+        },
+        "agent": {
+          "runs": 15,
+          "passed": 15
+        },
+        "cache_replay": {
+          "runs": 0,
+          "passed": 0
+        },
+        "skill_replay": {
+          "runs": 0,
+          "passed": 0
+        }
+      },
+      "peak_actual_input": 23284,
+      "mean_final_context_estimated_tokens": 30441.666666666668,
+      "mean_final_product_duplicate_ratio": 0.43154761904761907,
+      "loop_notices": 0,
+      "error_runs": 0,
+      "model_contract": {
+        "observed_calls": 1185,
+        "response_models": [
+          "deepseek-v4.1-flash"
+        ],
+        "unknown_identity_calls": 0,
+        "mismatched_identity_calls": 0,
+        "protocol_violation_calls": 0,
+        "unknown_protocol_calls": 0
+      },
+      "cache_read_ratio": 0.6768543888797673,
+      "prefix_diagnostics": {
+        "observed_calls": 1185,
+        "comparable_calls": 1056,
+        "system_changes": 0,
+        "tool_changes": 0,
+        "history_rewrites": 434,
+        "append_calls": 622
+      },
+      "replay_stage_ttft_p95_ms": {
+        "initial": null,
+        "followup": null,
+        "after_rebuild": null
+      },
+      "efficiency_diagnostics": {
+        "lookup_observed": 41,
+        "lookup_errors": 0,
+        "lookup_normalized": 0,
+        "lookup_pages_with_more": 0,
+        "state_emitted": 573,
+        "state_skipped": 0,
+        "prune_rewrites": 473,
+        "archived_results": 1661,
+        "request_reasons": {
+          "buyer_request": 573,
+          "lookup_followup": 38,
+          "tool_followup": 532
+        },
+        "estimated_sections": {
+          "system": 1442172,
+          "state": 3307719,
+          "product": 10145598,
+          "history": 2774067,
+          "tool_schema": 1830684
+        },
+        "measured_requests": 1143,
+        "visible_evidence_answers": 0,
+        "model_elapsed_p95_ms": 3484.230000000025,
+        "after_first_text_p95_ms": 1327.6532239999597
+      },
+      "coverage_complete": true
+    }
+  },
+  "paired_intervals": {
+    "candidate": {
+      "input_reduction": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": -0.1726184976107561,
+        "ci95": [
+          -0.21968799391180283,
+          -0.10100312594368366
+        ]
+      },
+      "total_token_reduction": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": -0.16750386505416248,
+        "ci95": [
+          -0.2141468087734688,
+          -0.09698403151465751
+        ]
+      },
+      "success_difference": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": 0,
+        "ci95": [
+          0,
+          0
+        ]
+      },
+      "billing_against_current": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": 0.2580470020219584,
+        "ci95": [
+          0.21108766421219038,
+          0.31630554457729276
+        ]
+      }
+    }
+  },
+  "gates": {
+    "candidate": {
+      "status": "BENEFIT_VERIFIED",
+      "reasons": [],
+      "ordinary_p95_ratio": 0.9623620776389942,
+      "new_failure_cases": [],
+      "production_deploy_authorized": false,
+      "billing_reduction": null
+    }
+  },
+  "failure_count": 0,
+  "unknown_currency": false
+}

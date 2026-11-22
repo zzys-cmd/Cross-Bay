@@ -1,0 +1,366 @@
+{
+  "matrix_complete": true,
+  "missing": [],
+  "strategies": {
+    "current": {
+      "runs": 99,
+      "passed": 97,
+      "success_rate": 0.9797979797979798,
+      "input_tokens": {
+        "total": 8897099,
+        "observed_sum": 8897099,
+        "known": 1171,
+        "unknown": 0
+      },
+      "output_tokens": {
+        "total": 180026,
+        "observed_sum": 180026,
+        "known": 1171,
+        "unknown": 0
+      },
+      "total_tokens": {
+        "total": 9077125,
+        "observed_sum": 9077125,
+        "known": 1171,
+        "unknown": 0
+      },
+      "cache_read_tokens": {
+        "total": 4095488,
+        "observed_sum": 4095488,
+        "known": 1171,
+        "unknown": 0
+      },
+      "cache_write_tokens": {
+        "total": null,
+        "observed_sum": null,
+        "known": 0,
+        "unknown": 1171
+      },
+      "reported_cost": {
+        "total": 5.603624759999987,
+        "observed_sum": 5.603624759999987,
+        "known": 1171,
+        "unknown": 0
+      },
+      "physical_model_calls": 1171,
+      "summary_calls": 44,
+      "lookup_calls": 43,
+      "ordinary_round_p95_ms": 6499.736143999598,
+      "compacted_round_p95_ms": null,
+      "manual_compaction_p95_ms": 13934.607745999983,
+      "usage_by_kind": {
+        "business": {
+          "input_tokens": {
+            "total": 8656116,
+            "observed_sum": 8656116,
+            "known": 1127,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 136549,
+            "observed_sum": 136549,
+            "known": 1127,
+            "unknown": 0
+          }
+        },
+        "summary": {
+          "input_tokens": {
+            "total": 240983,
+            "observed_sum": 240983,
+            "known": 44,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 43477,
+            "observed_sum": 43477,
+            "known": 44,
+            "unknown": 0
+          }
+        }
+      },
+      "model_ttft_p95_ms": 3107.564705000186,
+      "model_ttft_known_calls": 55,
+      "scenario_p95_ms": 113438,
+      "by_layer": {
+        "context": {
+          "runs": 84,
+          "passed": 83
+        },
+        "agent": {
+          "runs": 15,
+          "passed": 14
+        },
+        "cache_replay": {
+          "runs": 0,
+          "passed": 0
+        },
+        "skill_replay": {
+          "runs": 0,
+          "passed": 0
+        }
+      },
+      "peak_actual_input": 27234,
+      "mean_final_context_estimated_tokens": 29060.14285714286,
+      "mean_final_product_duplicate_ratio": 0.43154761904761907,
+      "loop_notices": 0,
+      "error_runs": 1,
+      "model_contract": {
+        "observed_calls": 1171,
+        "response_models": [
+          "deepseek-v4.1-flash"
+        ],
+        "unknown_identity_calls": 0,
+        "mismatched_identity_calls": 0,
+        "protocol_violation_calls": 0,
+        "unknown_protocol_calls": 0
+      },
+      "cache_read_ratio": 0.4603172337410205,
+      "prefix_diagnostics": {
+        "observed_calls": 1171,
+        "comparable_calls": 1043,
+        "system_changes": 480,
+        "tool_changes": 0,
+        "history_rewrites": 483,
+        "append_calls": 560
+      },
+      "replay_stage_ttft_p95_ms": {
+        "initial": null,
+        "followup": null,
+        "after_rebuild": null
+      },
+      "efficiency_diagnostics": {
+        "lookup_observed": 43,
+        "lookup_errors": 0,
+        "lookup_normalized": 0,
+        "lookup_pages_with_more": 0,
+        "state_emitted": null,
+        "state_skipped": null,
+        "prune_rewrites": 465,
+        "archived_results": 1645,
+        "request_reasons": {
+          "buyer_request": 567,
+          "lookup_followup": 40,
+          "tool_followup": 520
+        },
+        "estimated_sections": {
+          "system": 1607283,
+          "state": 0,
+          "product": 10236869,
+          "history": 2737220,
+          "tool_schema": 1725076
+        },
+        "measured_requests": 1127,
+        "visible_evidence_answers": 0,
+        "model_elapsed_p95_ms": 3883.6761330003355,
+        "after_first_text_p95_ms": 1484.2348330003006
+      },
+      "coverage_complete": true
+    },
+    "candidate": {
+      "runs": 99,
+      "passed": 99,
+      "success_rate": 1,
+      "input_tokens": {
+        "total": 10541479,
+        "observed_sum": 10541479,
+        "known": 1179,
+        "unknown": 0
+      },
+      "output_tokens": {
+        "total": 160296,
+        "observed_sum": 160296,
+        "known": 1179,
+        "unknown": 0
+      },
+      "total_tokens": {
+        "total": 10701775,
+        "observed_sum": 10701775,
+        "known": 1179,
+        "unknown": 0
+      },
+      "cache_read_tokens": {
+        "total": 7142656,
+        "observed_sum": 7142656,
+        "known": 1179,
+        "unknown": 0
+      },
+      "cache_write_tokens": {
+        "total": null,
+        "observed_sum": null,
+        "known": 0,
+        "unknown": 1179
+      },
+      "reported_cost": {
+        "total": 4.182860120000006,
+        "observed_sum": 4.182860120000006,
+        "known": 1179,
+        "unknown": 0
+      },
+      "physical_model_calls": 1179,
+      "summary_calls": 42,
+      "lookup_calls": 35,
+      "ordinary_round_p95_ms": 6391.36617999975,
+      "compacted_round_p95_ms": null,
+      "manual_compaction_p95_ms": 7292.289140999856,
+      "usage_by_kind": {
+        "business": {
+          "input_tokens": {
+            "total": 10247860,
+            "observed_sum": 10247860,
+            "known": 1137,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 122885,
+            "observed_sum": 122885,
+            "known": 1137,
+            "unknown": 0
+          }
+        },
+        "summary": {
+          "input_tokens": {
+            "total": 293619,
+            "observed_sum": 293619,
+            "known": 42,
+            "unknown": 0
+          },
+          "output_tokens": {
+            "total": 37411,
+            "observed_sum": 37411,
+            "known": 42,
+            "unknown": 0
+          }
+        }
+      },
+      "model_ttft_p95_ms": 2601.8712950003646,
+      "model_ttft_known_calls": 61,
+      "scenario_p95_ms": 112827,
+      "by_layer": {
+        "context": {
+          "runs": 84,
+          "passed": 84
+        },
+        "agent": {
+          "runs": 15,
+          "passed": 15
+        },
+        "cache_replay": {
+          "runs": 0,
+          "passed": 0
+        },
+        "skill_replay": {
+          "runs": 0,
+          "passed": 0
+        }
+      },
+      "peak_actual_input": 23088,
+      "mean_final_context_estimated_tokens": 30402.190476190477,
+      "mean_final_product_duplicate_ratio": 0.43154761904761907,
+      "loop_notices": 0,
+      "error_runs": 0,
+      "model_contract": {
+        "observed_calls": 1179,
+        "response_models": [
+          "deepseek-v4.1-flash"
+        ],
+        "unknown_identity_calls": 0,
+        "mismatched_identity_calls": 0,
+        "protocol_violation_calls": 0,
+        "unknown_protocol_calls": 0
+      },
+      "cache_read_ratio": 0.6775762679980675,
+      "prefix_diagnostics": {
+        "observed_calls": 1179,
+        "comparable_calls": 1050,
+        "system_changes": 0,
+        "tool_changes": 0,
+        "history_rewrites": 432,
+        "append_calls": 618
+      },
+      "replay_stage_ttft_p95_ms": {
+        "initial": null,
+        "followup": null,
+        "after_rebuild": null
+      },
+      "efficiency_diagnostics": {
+        "lookup_observed": 35,
+        "lookup_errors": 0,
+        "lookup_normalized": 0,
+        "lookup_pages_with_more": 0,
+        "state_emitted": 573,
+        "state_skipped": 0,
+        "prune_rewrites": 471,
+        "archived_results": 1659,
+        "request_reasons": {
+          "buyer_request": 573,
+          "lookup_followup": 34,
+          "tool_followup": 530
+        },
+        "estimated_sections": {
+          "system": 1433270,
+          "state": 3304297,
+          "product": 10021274,
+          "history": 2739306,
+          "tool_schema": 1818206
+        },
+        "measured_requests": 1137,
+        "visible_evidence_answers": 0,
+        "model_elapsed_p95_ms": 3806.9072959997357,
+        "after_first_text_p95_ms": 1321.7179630000828
+      },
+      "coverage_complete": true
+    }
+  },
+  "paired_intervals": {
+    "candidate": {
+      "input_reduction": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": -0.18482204143170744,
+        "ci95": [
+          -0.21097990846184334,
+          -0.12410795435616673
+        ]
+      },
+      "total_token_reduction": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": -0.17898288279603936,
+        "ci95": [
+          -0.20467725647651958,
+          -0.11991127322411654
+        ]
+      },
+      "success_difference": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": 0.020202020202020204,
+        "ci95": [
+          0,
+          0.05050505050505051
+        ]
+      },
+      "billing_against_current": {
+        "unit": "scenario",
+        "scenarios": 33,
+        "estimate": 0.2535438579224204,
+        "ci95": [
+          0.22144489511390297,
+          0.2924572737923884
+        ]
+      }
+    }
+  },
+  "gates": {
+    "candidate": {
+      "status": "BENEFIT_VERIFIED",
+      "reasons": [],
+      "ordinary_p95_ratio": 0.9833270210360934,
+      "new_failure_cases": [],
+      "production_deploy_authorized": false,
+      "billing_reduction": null
+    }
+  },
+  "failure_count": 2,
+  "unknown_currency": false
+}
