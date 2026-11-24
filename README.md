@@ -470,7 +470,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | 显式缓存的 8 场景 × 3 策略 × 3 次回放对照，看缓存命中与成本差 | 有脚本，无产物；同类对照由 `eval/harness/v1/cache-layout-suite.json` 承载 |
 | Prompt / Skill 离线优化（GEPA） | 脚本 `scripts/optimize_prompts.py`<br>产物 无 | 用 GEPA 离线搜索更优的 Prompt 与公共 Skill 候选 | 有脚本，无产物；候选仍需全链路成对评测与人工发布门禁 |
 
-`eval/verification/` 下另有约 20 个一次性功能验证目录（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进、买家工作区等），是各次交付时的冒烟记录，不是可复跑的评测套件，因此不上表。
+`eval/verification/` 下另有 27 个一次性功能验证目录（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进、买家工作区等），是各次交付时的冒烟记录，不是可复跑的评测套件，因此不上表。
 
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
