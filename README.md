@@ -468,6 +468,9 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | 学习回流 | 脚本 `scripts/eval/run_learning.py`<br>产物 无 | 对话能否提炼成可复用策略，并由买家确认后生效 | 有脚本，无独立产物 |
 | 数据质量校验 | 脚本 `data_quality.py`、`validate_datasets.py`<br>产物 无 | 数据集格式、去重与场景家族隔离 | 无产物 |
 | Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | prompt 缓存命中带来的成本变化 | 疑似 harness 前身，无独立产物 |
+| Prompt / Skill 离线优化（GEPA） | 脚本 `scripts/optimize_prompts.py`<br>产物 无 | 用 GEPA 离线搜索更优的 Prompt 与公共 Skill 候选 | 有脚本，无产物；候选仍需全链路成对评测与人工发布门禁 |
+
+**各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
 前端「检索评测」页展示的是第二层商品检索部分的指标定义，可读取 `eval/verification/retrieval-standard/` 下所有历史 `report.json` 做基线／候选对照；指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
 
