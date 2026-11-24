@@ -12,7 +12,7 @@
 | 问题 | 做法 | 结果 |
 | --- | --- | --- |
 | 长对话里工具结果被裁掉，模型随后“忘了自己看过什么” | 分层上下文、检查点与工具证据保活，裁剪策略由评测判定 | 缓存命中 45.9% → 67.7%，账单降 25.8% |
-| 改一句 prompt 可能让成功率掉 10 个点，而单测照样全绿 | 48 场景 × 2 策略 × 3 重复 = 198 次真实会话，配对比较 + 收益门禁 | 成本 ¥5.705 → ¥4.233，成功率无差异 |
+| 改一句 prompt 可能让成功率掉 10 个点，而单测照样全绿 | 33 个留出场景 × 2 策略 × 3 重复 = 198 次真实会话，配对比较 + 收益门禁 | 成本 ¥5.705 → ¥4.233，成功率无差异 |
 | 买家说过“不要塑料材质”，换个会话就忘；记得多了还会互相打架 | 偏好 / 个人 Skill / 收藏分表存储，写入走审批，唯一约束去重 + CAS 版本控制，服务端注入 `<buyer-preferences>` 替代提示词软约束 | 偏好抽取 12/12 通过（噪声、临时要求、作用域、极性、冲突五类检查） |
 
 **技术栈**：AgentScope 2.x · FastAPI · AG-UI（SSE 流式）· React · SQLite · Qdrant
@@ -445,7 +445,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 | 评测 | 代码 / 产物位置 | 测什么 | 规模 | 结论 |
 | --- | --- | --- | --- | --- |
-| Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval-reports/20261122-pass198/`、`eval/verification/ci-release-*/` | 同一批任务下，两套上下文裁剪策略谁更省、谁不丢事实 | 48 场景 × 2 策略 × 3 次 = 198 | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
+| Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval-reports/20261122-pass198/`、`eval/verification/ci-release-*/` | 同一批留出任务下，两种 prompt 布局（legacy_system / stable_prefix）谁更省、谁不丢事实 | 33 个留出场景 × 2 策略 × 3 次 = 198（场景全集 48 = 开发 15 + 留出 33） | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
 | Rubric 回归 | 脚本 `scripts/eval_regression.py`<br>产物 `eval/verification/rubric-20261124/` | 真实场景下的回答质量：数字准不准、行为对不对、表达自不自然 | 13 条（P0/P1/P2 三级） | 多次运行稳定在 10/13，平均分 0.81–0.89（LLM 判分有波动，最近一次 0.808） |
 | 词法检索对照 | 脚本 `scripts/eval/retrieval_standard.py`<br>产物 `eval/verification/retrieval-standard-v1-20261122/` | 关键词与 BM25 两种词法检索的召回和排序差异 | 72 条查询 | keyword Recall@5 92.19%；BM25 92.71% 但 NDCG@5 下降 3.3pp，故不启用 |
 
@@ -457,8 +457,8 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | ESCI 生产检索 | 脚本仅存于产物目录 `2026-10-23-esci-prod-retrieval-300/bench_prod_retrieval.py`<br>产物同目录 | 10 万商品规模下加精排是否有收益 | 300 条查询 / 99999 件商品 | MRR 0.611 → 0.682、nDCG@8 0.338 → 0.395 | 10 万商品库与 ESCI 映射脚本未留档，脚本路径绑在容器内 |
 | 上下文专项（2026-09-10） | 脚本 `scripts/eval/run_context.py`<br>产物 `eval/verification/context-20260910/` | 第一版分层上下文策略能否通过收益门禁 | 360 次（开发 108 + 留出 252） | 门禁 BLOCK：token 上涨约 15%，普通轮 P95 从 29.3s 降到 9.8s | 早于当前留档规范，无源码快照 |
 | 商品 / 品类召回 | 脚本 `run_product_recall.py`、`run_category_recall.py`<br>产物 `eval/verification/product-recall-*/`（11 份） | hybrid 权重、候选数与 top-k 对召回质量的影响 | 11 份报告 | 各组参数对比结论 | 旧数据集未随仓库留档 |
-| 记忆提炼 | 脚本 `scripts/evaluate_memory.py`<br>产物 `eval/verification/memory-upgrade-20260909/` | 买家偏好能否被正确抽取、去噪并持久化 | 3 份产物 | acceptance / extraction / live-flow 三阶段记录 | 依赖当时的运行态数据 |
-| AG-UI 会话验证 | 脚本 `scripts/verify_ag_ui.py`<br>产物 `eval/ag-ui-verification-20260909.json` | 前端事件流、断线重连与运行恢复是否一致 | 76 行快照 | 一次性验证 | 无脚本 |
+| 记忆提炼 | 脚本 `scripts/evaluate_memory.py`<br>产物 `eval/verification/memory-upgrade-20260909/` | 买家偏好能否被正确抽取与去噪——脚本明确不写买家记忆，写入与召回由 acceptance / live-flow 另验 | 3 份产物 | acceptance / extraction / live-flow 三阶段记录 | 依赖当时的运行态数据 |
+| AG-UI 会话验证 | 脚本 `scripts/verify_ag_ui.py`<br>产物 `eval/ag-ui-verification-20260909.json` | AG-UI SSE 事件流协议是否完整（事件计数、终结状态、耗时）以及商品卡是否渲染 | 76 行快照 | 一次性验证 | 脚本存在，但未纳入常规回归 |
 
 **第三层：只有代码，未执行**——脚本与数据集在仓库内，但本仓库没有对应产物，不能引用为效果依据。
 
@@ -467,8 +467,10 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | Skill 600 条分场景 | 脚本 `scripts/eval/run_skill_suite.py`<br>产物 无（仅数据校验） | Skill 正文能否被正确执行（同义表达、多轮修改、反例、冲突、安全审批、版本恢复六类） | 仅跑过数据校验，400 条模型用例未执行 |
 | 学习回流 | 脚本 `scripts/eval/run_learning.py`<br>产物 无 | 对话能否提炼成可复用策略，并由买家确认后生效 | 有脚本，无独立产物 |
 | 数据质量校验 | 脚本 `data_quality.py`、`validate_datasets.py`<br>产物 无 | 数据集格式、去重与场景家族隔离 | 无产物 |
-| Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | prompt 缓存命中带来的成本变化 | 疑似 harness 前身，无独立产物 |
+| Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | 显式缓存的 8 场景 × 3 策略 × 3 次回放对照，看缓存命中与成本差 | 有脚本，无产物；同类对照由 `eval/harness/v1/cache-layout-suite.json` 承载 |
 | Prompt / Skill 离线优化（GEPA） | 脚本 `scripts/optimize_prompts.py`<br>产物 无 | 用 GEPA 离线搜索更优的 Prompt 与公共 Skill 候选 | 有脚本，无产物；候选仍需全链路成对评测与人工发布门禁 |
+
+`eval/verification/` 下另有约 20 个一次性功能验证目录（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进、买家工作区等），是各次交付时的冒烟记录，不是可复跑的评测套件，因此不上表。
 
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
