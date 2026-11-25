@@ -456,7 +456,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | Dense 检索留出 | 脚本 `scripts/eval/retrieval_live_pair.py`<br>产物 `eval/verification/retrieval-standard/live-dense-*/` | 向量检索改版后在留出集上的召回与排序质量 | 留出集 | Recall@5 65.63% → 98.96%，NDCG@5 0.657 → 0.903 | 当时商品库未留档 |
 | ESCI 生产检索 | 脚本仅存于产物目录 `2026-10-23-esci-prod-retrieval-300/bench_prod_retrieval.py`<br>产物同目录 | 10 万商品规模下加精排是否有收益 | 300 条查询 / 99999 件商品 | MRR 0.611 → 0.682、nDCG@8 0.338 → 0.395 | 10 万商品库与 ESCI 映射脚本未留档，脚本路径绑在容器内 |
 | 上下文专项（2026-09-10） | 脚本 `scripts/eval/run_context.py`<br>产物 `eval/verification/context-20260910/` | 第一版分层上下文策略能否通过收益门禁 | 360 次（开发 108 + 留出 252） | 门禁 BLOCK：token 上涨约 15%，普通轮 P95 从 29.3s 降到 9.8s | 早于当前留档规范，无源码快照 |
-| 商品 / 品类召回 | 脚本 `run_product_recall.py`、`run_category_recall.py`<br>产物 `eval/verification/product-recall-*/`（11 份） | hybrid 权重、候选数与 top-k 对召回质量的影响 | 11 份报告 | 各组参数对比结论 | 旧数据集未随仓库留档 |
+| 商品 / 品类召回 | 脚本 `run_product_recall.py`、`run_category_recall.py`<br>产物 `eval/verification/product-recall-*/`（11 组） | hybrid 权重、候选数与 top-k 对召回质量的影响 | 11 组参数对比 | 各组参数对比结论 | 旧数据集未随仓库留档 |
 | 记忆提炼 | 脚本 `scripts/evaluate_memory.py`<br>产物 `eval/verification/memory-upgrade-20260909/` | 买家偏好能否被正确抽取与去噪——脚本明确不写买家记忆，写入与召回由 acceptance / live-flow 另验 | 3 份产物 | acceptance / extraction / live-flow 三阶段记录 | 依赖当时的运行态数据 |
 | AG-UI 会话验证 | 脚本 `scripts/verify_ag_ui.py`<br>产物 `eval/ag-ui-verification-20260909.json` | AG-UI SSE 事件流协议是否完整（事件计数、终结状态、耗时）以及商品卡是否渲染 | 76 行快照 | 一次性验证 | 脚本存在，但未纳入常规回归 |
 
@@ -470,7 +470,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | 显式缓存的 8 场景 × 3 策略 × 3 次回放对照，看缓存命中与成本差 | 有脚本，无产物；同类对照由 `eval/harness/v1/cache-layout-suite.json` 承载 |
 | Prompt / Skill 离线优化（GEPA） | 脚本 `scripts/optimize_prompts.py`<br>产物 无 | 用 GEPA 离线搜索更优的 Prompt 与公共 Skill 候选 | 有脚本，无产物；候选仍需全链路成对评测与人工发布门禁 |
 
-`eval/verification/` 下另有 27 个一次性功能验证目录（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进、买家工作区等），是各次交付时的冒烟记录，不是可复跑的评测套件，因此不上表。
+`eval/verification/` 只保留可引用的评测证据。历史上的一次性功能验证（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进等）已清理，目录中不再保留。
 
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
