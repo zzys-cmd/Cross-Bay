@@ -216,7 +216,7 @@ docker compose --env-file .env -f docker/docker-compose.yaml down
 
 本轮标准要求 NDCG@5 和返回结果精度各提升至少 0.02，Recall@5 最多下降 0.01；预算、材质、配送违规为 0，并且三类均须有有效正例覆盖，预期空结果准确率不得下降。相同目录、金标、查询选择和模型身份才可比较；未运行、不可比或诊断报告均不能显示“验收通过”。这些是冻结目标，不是已经取得的收益。
 
-当前模型基线只完成配置与数据冻结，指标显示为“待测”。页面保留关键词与 BM25 的参数对比诊断（`algorithm-before/after-v2-*` 等），供检查图表和指标差异；现有标注缺少材质约束和预算正例，诊断不证明当前向量主链已优化。GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
+当前模型基线只完成配置与数据冻结，指标显示为“待测”。历史诊断报告已清理，页面待以当前代码重建基线与候选后重新生成对照；现有标注缺少材质约束和预算正例，诊断不证明当前向量主链已优化。GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
 
 ## 技术架构与请求路径
 
@@ -453,7 +453,6 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 | 评测 | 代码 / 产物位置 | 测什么 | 规模 | 结论 | 不可复现的原因 |
 | --- | --- | --- | --- | --- | --- |
-| Dense 检索留出 | 脚本 `scripts/eval/retrieval_live_pair.py`<br>产物 `eval/verification/retrieval-standard/live-dense-*/` | 向量检索改版后在留出集上的召回与排序质量 | 留出集 | Recall@5 65.63% → 98.96%，NDCG@5 0.657 → 0.903 | 当时商品库未留档 |
 | ESCI 生产检索 | 脚本仅存于产物目录 `2026-10-23-esci-prod-retrieval-300/bench_prod_retrieval.py`<br>产物同目录 | 10 万商品规模下加精排是否有收益 | 300 条查询 / 99999 件商品 | MRR 0.611 → 0.682、nDCG@8 0.338 → 0.395 | 10 万商品库与 ESCI 映射脚本未留档，脚本路径绑在容器内 |
 | 上下文专项（2026-09-10） | 脚本 `scripts/eval/run_context.py`<br>产物 `eval/verification/context-20260910/` | 第一版分层上下文策略能否通过收益门禁 | 360 次（开发 108 + 留出 252） | 门禁 BLOCK：token 上涨约 15%，普通轮 P95 从 29.3s 降到 9.8s | 早于当前留档规范，无源码快照 |
 | 商品 / 品类召回 | 脚本 `run_product_recall.py`、`run_category_recall.py`<br>产物 `eval/verification/product-recall-*/`（11 组） | hybrid 权重、候选数与 top-k 对召回质量的影响 | 11 组参数对比 | 各组参数对比结论 | 旧数据集未随仓库留档 |
@@ -464,6 +463,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 | 评测 | 代码 / 产物位置 | 测什么 | 状态 |
 | --- | --- | --- | --- |
+| Dense 检索留出 | 脚本 `scripts/eval/retrieval_live_pair.py`<br>产物 无（历史报告已清理） | 向量检索改版后在留出集上的召回与排序质量 | 有脚本；需先 `collect` 重建向量缓存才能回放；待以当前代码重建基线 |
 | Skill 600 条分场景 | 脚本 `scripts/eval/run_skill_suite.py`<br>产物 无（仅数据校验） | Skill 正文能否被正确执行（同义表达、多轮修改、反例、冲突、安全审批、版本恢复六类） | 仅跑过数据校验，400 条模型用例未执行 |
 | 学习回流 | 脚本 `scripts/eval/run_learning.py`<br>产物 无 | 对话能否提炼成可复用策略，并由买家确认后生效 | 有脚本，无独立产物 |
 | 数据质量校验 | 脚本 `data_quality.py`、`validate_datasets.py`<br>产物 无 | 数据集格式、去重与场景家族隔离 | 无产物 |
@@ -474,7 +474,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
-前端「检索评测」页展示的是第二层商品检索部分的指标定义，可读取 `eval/verification/retrieval-standard/` 下所有历史 `report.json` 做基线／候选对照；指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
+前端「检索评测」页展示的是商品检索部分的指标定义，读取 `eval/verification/retrieval-standard/` 下现存 `report.json` 做基线／候选对照；历史报告已清理，当前待重建，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
 
 ## 代码与接口导航
 
