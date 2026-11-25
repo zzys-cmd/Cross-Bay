@@ -7,7 +7,7 @@ import pytest
 from app.application.retrieval_evaluation import (
     PROTOCOL, aggregate_cases, compare_reports, evaluate_case, load_standard, standard_fingerprint, validate_report,
 )
-from scripts.eval.retrieval_standard import _write_new
+from scripts.eval.retrieval_dense_rerank import _write_new
 
 
 def product(identifier, canonical=None, materials=("金属",), ships=("CN",)):
