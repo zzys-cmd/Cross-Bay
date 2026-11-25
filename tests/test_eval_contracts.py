@@ -109,35 +109,6 @@ def test_constraint_checker_reports_excluded_material_leak():
     assert violations == {"P-POLY": {"material_excluded"}}
 
 
-def test_product_recall_check_filter_rejects_returned_product_above_price_cap():
-    """旧逻辑只检查 relevant 是否被过滤，预算超标命中会被漏掉。"""
-    from scripts.eval.run_product_recall import check_filter
-
-    ok, note = check_filter(
-        {"relevant": [], "price_max_major": 300},
-        [{"product_id": "P-OVER", "price_major": 301, "currency": "CNY", "skus": [{"stock": 5}]}],
-        [],
-        {"P-OVER": {"ships_to": ["CN"]}},
-    )
-
-    assert ok is False
-    assert "over_price_cap" in note
-
-
-def test_product_recall_check_filter_evaluates_material_only_constraint():
-    from scripts.eval.run_product_recall import check_filter
-
-    ok, note = check_filter(
-        {"relevant": [], "excluded_material_tags": ["合成聚合物"]},
-        [{"product_id": "P-POLY", "price_major": 99, "currency": "CNY", "skus": [{"stock": 3}]}],
-        [],
-        {"P-POLY": {"ships_to": ["CN"], "material_tags": ["合成聚合物"]}},
-    )
-
-    assert ok is False
-    assert "material_excluded" in note
-
-
 @pytest.mark.parametrize(
     ("mutation_id", "expected"),
     [(index, expected) for index, expected in enumerate(

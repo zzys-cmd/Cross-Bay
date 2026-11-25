@@ -13,19 +13,6 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_category_recall_help_is_renderable() -> None:
-    result = subprocess.run(
-        [sys.executable, "scripts/eval/run_category_recall.py", "--help"],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stderr
-    assert "品类知识库召回评测" in result.stdout
-
-
 def test_docker_image_packages_catalog_outside_mutable_data_volume() -> None:
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
 

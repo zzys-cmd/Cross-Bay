@@ -463,7 +463,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | --- | --- | --- | --- |
 | Skill 600 条分场景 | 脚本 `scripts/eval/run_skill_suite.py`<br>产物 无（仅数据校验） | Skill 正文能否被正确执行（同义表达、多轮修改、反例、冲突、安全审批、版本恢复六类） | 仅跑过数据校验，400 条模型用例未执行 |
 | 学习回流 | 脚本 `scripts/eval/run_learning.py`<br>产物 无 | 对话能否提炼成可复用策略，并由买家确认后生效 | 有脚本，无独立产物 |
-| 数据质量校验 | 脚本 `data_quality.py`、`validate_datasets.py`<br>产物 无 | 数据集格式、去重与场景家族隔离 | 无产物 |
+| 数据质量校验 | 脚本 `data_quality.py`、`validate_datasets.py`<br>产物 无 | 商品目录字段、去重与分布；品类知识与目录的交叉校验 | 无产物 |
 | Prompt 缓存专项 | 脚本 `scripts/eval/prompt_cache.py`<br>产物 无 | 显式缓存的 8 场景 × 3 策略 × 3 次回放对照，看缓存命中与成本差 | 有脚本，无产物；同类对照由 `eval/harness/v1/cache-layout-suite.json` 承载 |
 | Prompt / Skill 离线优化（GEPA） | 脚本 `scripts/optimize_prompts.py`<br>产物 无 | 用 GEPA 离线搜索更优的 Prompt 与公共 Skill 候选 | 有脚本，无产物；候选仍需全链路成对评测与人工发布门禁 |
 

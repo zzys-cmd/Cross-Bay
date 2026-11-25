@@ -1,10 +1,9 @@
 """用当前实际检索链路做基线／候选对照：基线 embedding_only，候选额外开启 rerank。
 
 线上链路是 `embedding_rerank → embedding_only → keyword_2gram` 三级降级，
-当前 `RERANKER_MODE=disabled`，实际走 `embedding_only`。旧的
-`retrieval_standard.py` 只跑纯词法（2gram / BM25），不接 Embedding 也不接
-精排，跑出来的数不代表线上。本脚本直接复用生产同一套 `CatalogSearchUseCase`，
-接入 EmbeddingClient + 向量索引 + 可选 reranker。
+当前 `RERANKER_MODE=disabled`，实际走 `embedding_only`。本脚本直接复用生产
+同一套 `CatalogSearchUseCase`，接入 EmbeddingClient + 向量索引 + 可选
+reranker，跑的就是线上这条链路。
 
 不改动生产配置：`.env`、`settings.py`、`composition.py` 均不动。候选模式通过
 `dataclasses.replace` 在内存里把 `reranker_mode` 换成 http，进程结束即失效，

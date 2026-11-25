@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""eval —— 离线召回评测脚手架（13-1 / 13-2 章）
+"""eval —— 离线检索与数据集校验脚手架
 
 评测是离线工具，不属于运行时应用，因此放在 `scripts/eval/` 而非 `app/`：
 
-    metrics.py               Recall@K / MRR / NDCG@K 纯函数 + 聚合 + 发版门禁
-    validate_datasets.py     标注集自检（拿去评测前先跑这个）
-    run_product_recall.py    商品检索（product_search）召回评测
-    run_category_recall.py   品类知识库（CategoryInsight）召回评测
+    metrics.py                  Recall@K / MRR / NDCG@K 纯函数 + 聚合 + 发版门禁
+    validate_datasets.py        商品目录与品类知识自检
+    retrieval_dense_rerank.py   线上检索链路的基线／精排对照
 
-两个跑测脚本共用 metrics，直连 UseCase / KnowledgeBase，不过 HTTP、不过 Agent——
-召回评测的定位是模块级「日常体检」，必须快且便宜，才可能常驻 CI。
-端到端质量由 `scripts/eval_regression.py` 的 Rubric 评测负责，两者互补。
+`retrieval_dense_rerank.py` 复用生产 `CatalogSearchUseCase`，接 Embedding 与
+向量索引，可用 `--rerank on|off` 做单变量对照；不改 `.env`、`settings.py`、
+`composition.py`。端到端质量由 `scripts/eval_regression.py` 的 Rubric 评测负责，
+两者互补。
 """

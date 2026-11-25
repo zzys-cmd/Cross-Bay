@@ -33,10 +33,7 @@ from scripts.eval.knowledge_quality import (  # noqa: E402
     validate_knowledge_manifest,
 )
 
-_PRODUCT_DATASET = Path("eval/product_recall.jsonl")
-_CATEGORY_DATASET = Path("eval/category_recall.jsonl")
 _KNOWLEDGE_DIR = Path("knowledge")
-_FORMAL_EVAL_DIR = Path("eval") / "v1"
 _CATALOG_FIXTURE = Path("data") / "catalog-v2.jsonl"
 
 
@@ -46,52 +43,6 @@ def _load(path: Path) -> list[tuple[int, dict]]:
         if raw.strip():
             cases.append((lineno, json.loads(raw)))
     return cases
-
-
-def _check_common(lineno: int, case: dict) -> list[str]:
-    problems = []
-    relevant = case.get("relevant") or []
-    if not relevant:
-        problems.append(f"L{lineno} [{case.get('query')}] relevant 为空")
-    if len(set(relevant)) != len(relevant):
-        problems.append(f"L{lineno} [{case.get('query')}] relevant 有重复")
-    return problems
-
-
-async def validate_products() -> list[str]:
-    products = {p.product_id: p for p in await InMemoryProductRepository().list_all()}
-    problems: list[str] = []
-
-    for lineno, case in _load(_PRODUCT_DATASET):
-        query = case["query"]
-        problems.extend(_check_common(lineno, case))
-        if case.get("kind") not in (None, "lexical", "semantic"):
-            problems.append(f"L{lineno} [{query}] kind 取值非法：{case['kind']}")
-
-        for pid in case.get("relevant", []):
-            product = products.get(pid)
-            if product is None:
-                problems.append(f"L{lineno} [{query}] {pid} 不在商品库")
-                continue
-
-            # 价格约束：只在币种与约束口径一致时判定，避免在评测里重算汇率
-            limit = case.get("price_max_major")
-            if limit is not None:
-                cheapest = min(sku.price.to_major_units() for sku in product.skus)
-                currency = product.skus[0].price.currency
-                if currency == "CNY" and cheapest > limit:
-                    problems.append(
-                        f"L{lineno} [{query}] {pid} 最低价 {cheapest}{currency} > 上限 {limit}"
-                        f"（标注自相矛盾：会被硬约束挡掉的商品不该标为 relevant）",
-                    )
-
-            ship_to = case.get("ship_to")
-            if ship_to and ship_to not in product.ships_to:
-                problems.append(
-                    f"L{lineno} [{query}] {pid} ships_to={product.ships_to} 不含 {ship_to}"
-                    f"（标注自相矛盾）",
-                )
-    return problems
 
 
 async def validate_catalog_fixture() -> list[str]:
@@ -120,43 +71,17 @@ async def validate_knowledge_fixture() -> list[str]:
     return problems
 
 
-def validate_official_eval_fixture() -> list[str]:
-    """正式集的规模、分桶和 split 隔离，复用统一数据校验入口。"""
-    problems, _ = _validate_official_eval_fixture(_FORMAL_EVAL_DIR)
-    return problems
-
-
-def validate_categories() -> list[str]:
-    docs = {p.name for p in _KNOWLEDGE_DIR.glob("*.md")}
-    problems: list[str] = []
-    for lineno, case in _load(_CATEGORY_DATASET):
-        problems.extend(_check_common(lineno, case))
-        for name in case.get("relevant", []):
-            if name not in docs:
-                problems.append(
-                    f"L{lineno} [{case['query']}] 知识文档不存在：{name}"
-                    f"（标注单位应为 knowledge/*.md 的文件名）",
-                )
-    return problems
-
 
 async def main() -> None:
-    product_problems = await validate_products()
-    category_problems = validate_categories()
     catalog_problems = await validate_catalog_fixture()
     knowledge_problems = await validate_knowledge_fixture()
-    formal_eval_problems = validate_official_eval_fixture()
-
-    print(f"{_PRODUCT_DATASET}：{len(_load(_PRODUCT_DATASET))} 条")
-    print(f"{_CATEGORY_DATASET}：{len(_load(_CATEGORY_DATASET))} 条")
-
-    problems = product_problems + category_problems + catalog_problems + knowledge_problems + formal_eval_problems
+    problems = catalog_problems + knowledge_problems
     if problems:
-        print(f"\n发现 {len(problems)} 处问题：")
+        print(f"发现 {len(problems)} 处问题：")
         for message in problems:
             print("  -", message)
         sys.exit(1)
-    print("\n标注集自检通过")
+    print("商品目录与品类知识自检通过")
 
 
 if __name__ == "__main__":
