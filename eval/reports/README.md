@@ -10,7 +10,7 @@
 | 2026-11-21 | `44908921819` | 99/99 | 97/99 | 2 | `BLOCKED` | [20261121-candidate97](20261121-candidate97/) |
 | 2026-11-22 | `44989461349` | 99/99 | 99/99 | 0 | `BENEFIT_VERIFIED` | [20261122-pass198](20261122-pass198/) |
 
-共同条件：`deepseek-v4.1-flash`、`profile=release`、`RERANKER_MODE=disabled`、48 场景 × 2 策略 × 3 次重复 = 198 次调用。
+共同条件：`deepseek-v4.1-flash`、`profile=release`、`RERANKER_MODE=disabled`、33 个留出场景 × 2 策略 × 3 次重复 = 198 次调用（场景全集 48 = 开发 15 + 留出 33）。
 
 ## 怎么看
 
