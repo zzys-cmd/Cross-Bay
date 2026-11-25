@@ -445,7 +445,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 | 评测 | 代码 / 产物位置 | 测什么 | 规模 | 结论 |
 | --- | --- | --- | --- | --- |
-| Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval/verification/reports/20261122-pass198/`、`eval/verification/ci-release-*/` | 同一批留出任务下，两种 prompt 布局（legacy_system / stable_prefix）谁更省、谁不丢事实 | 33 个留出场景 × 2 策略 × 3 次 = 198（场景全集 48 = 开发 15 + 留出 33） | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
+| Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval/verification/ci-release-20261122-44989461349/`（report.html、summary.json、rows、attempts.jsonl） | 同一批留出任务下，两种 prompt 布局（legacy_system / stable_prefix）谁更省、谁不丢事实 | 33 个留出场景 × 2 策略 × 3 次 = 198（场景全集 48 = 开发 15 + 留出 33） | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
 | Rubric 回归 | 脚本 `scripts/eval_regression.py`<br>产物 `eval/verification/rubric-20261124/` | 真实场景下的回答质量：数字准不准、行为对不对、表达自不自然 | 13 条（P0/P1/P2 三级） | 多次运行稳定在 10/13，平均分 0.81–0.89（LLM 判分有波动，最近一次 0.808） |
 | 词法检索对照 | 脚本 `scripts/eval/retrieval_standard.py`<br>产物 `eval/verification/retrieval-standard-v1-20261122/` | 关键词与 BM25 两种词法检索的召回和排序差异 | 72 条查询 | keyword Recall@5 92.19%；BM25 92.71% 但 NDCG@5 下降 3.3pp，故不启用 |
 
@@ -493,7 +493,6 @@ data/catalog-v3.jsonl 当前样例目录（3700 件）；v1（500 件）、v2（
 scripts/             冒烟、评测、版本管理、身份 token 等 CLI
 tests/               后端回归与前端单测
 eval/                冻结用例、运行目录与原始验收证据（本地留存，不入库）
-eval/verification/reports/  留出集报告快照（report.html + summary.json）
 docs/                改动记录与方法说明（本地留存，不入库）
 docker/              全栈 Compose 配置
 ```
