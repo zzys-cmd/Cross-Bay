@@ -216,7 +216,7 @@ docker compose --env-file .env -f docker/docker-compose.yaml down
 
 本轮标准要求 NDCG@5 和返回结果精度各提升至少 0.02，Recall@5 最多下降 0.01；预算、材质、配送违规为 0，并且三类均须有有效正例覆盖，预期空结果准确率不得下降。相同目录、金标、查询选择和模型身份才可比较；未运行、不可比或诊断报告均不能显示“验收通过”。这些是冻结目标，不是已经取得的收益。
 
-页面当前可选两份诊断报告：`当前检索主链（走 Embedding，无精排）` 与 `当前检索主链 + 精排`，二者只差 `reranker_mode`。实测 NDCG@5 由 0.9096 升到 0.9602，但返回精度只提升 0.63pp（未达 +2pp 门禁），P95 由 376ms 涨到 2786ms。**精排尚未启用**，因为在延迟与精度两项门禁未过；现有标注缺少材质约束和预算正例，这两项始终无法判定通过。GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
+页面当前可选两份诊断报告：`当前检索主链（走 Embedding，无精排）` 与 `当前检索主链 + 精排`，二者只差 `reranker_mode`。实测 NDCG@5 由 0.9096 升到 0.9602，但返回精度只提升 0.63pp（未达 +2pp 门禁），P95 由 376ms 涨到 2786ms。**精排尚未启用**，因为在延迟与精度两项门禁未过；现有标注缺少材质约束和预算正例，这两项始终无法判定通过。另有一轮 Harness 全链路实测显示，开启精排的效果劣于关闭（该轮产物未保留，此处不作数字引用）。检索层精排提升了排序质量但代价是 6.4 倍延迟，全链路又为负收益，两条证据都指向同一结论：**当前不启用精排**。GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
 
 ## 技术架构与请求路径
 
@@ -453,9 +453,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 | 评测 | 代码 / 产物位置 | 测什么 | 规模 | 结论 | 不可复现的原因 |
 | --- | --- | --- | --- | --- | --- |
-| ESCI 生产检索 | 脚本仅存于产物目录 `2026-10-23-esci-prod-retrieval-300/bench_prod_retrieval.py`<br>产物同目录 | 10 万商品规模下加精排是否有收益 | 300 条查询 / 99999 件商品 | MRR 0.611 → 0.682、nDCG@8 0.338 → 0.395 | 10 万商品库与 ESCI 映射脚本未留档，脚本路径绑在容器内 |
 | 上下文专项（2026-09-10） | 脚本 `scripts/eval/run_context.py`<br>产物 `eval/verification/context-20260910/` | 第一版分层上下文策略能否通过收益门禁 | 360 次（开发 108 + 留出 252） | 门禁 BLOCK：token 上涨约 15%，普通轮 P95 从 29.3s 降到 9.8s | 早于当前留档规范，无源码快照 |
-| 商品 / 品类召回 | 脚本 `run_product_recall.py`、`run_category_recall.py`<br>产物 `eval/verification/product-recall-*/`（11 组） | hybrid 权重、候选数与 top-k 对召回质量的影响 | 11 组参数对比 | 各组参数对比结论 | 旧数据集未随仓库留档 |
 | 记忆提炼 | 脚本 `scripts/evaluate_memory.py`<br>产物 `eval/verification/memory-upgrade-20260909/` | 买家偏好能否被正确抽取与去噪——脚本明确不写买家记忆，写入与召回由 acceptance / live-flow 另验 | 3 份产物 | acceptance / extraction / live-flow 三阶段记录 | 依赖当时的运行态数据 |
 | AG-UI 会话验证 | 脚本 `scripts/verify_ag_ui.py`<br>产物 `eval/ag-ui-verification-20260909.json` | AG-UI SSE 事件流协议是否完整（事件计数、终结状态、耗时）以及商品卡是否渲染 | 76 行快照 | 一次性验证 | 脚本存在，但未纳入常规回归 |
 
@@ -471,7 +469,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 `eval/verification/` 只保留可引用的评测证据。历史上的一次性功能验证（架构分层、后端端口、本地启动、会话删除、多语言、版本恢复、知识库改进等）已清理，目录中不再保留。
 
-**各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`、`eval/v1`–`v4`；召回用 `eval/product_recall.jsonl`、`eval/category_recall.jsonl`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
+**各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索精排对照用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`；上下文用 `eval/context/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
 前端「检索评测」页展示的是商品检索部分的指标定义，读取 `eval/verification/retrieval-standard/` 下现存 `report.json` 做基线／候选对照；历史报告已清理，当前待重建，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
 
