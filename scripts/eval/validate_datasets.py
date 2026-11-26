@@ -25,7 +25,6 @@ from scripts.eval.data_quality import (  # noqa: E402
     validate_catalog_products,
     validate_catalog_raw_records,
 )
-from scripts.eval.eval_quality import validate_official_eval_fixture as _validate_official_eval_fixture  # noqa: E402
 from scripts.eval.knowledge_quality import (  # noqa: E402
     count_knowledge_chunks,
     load_knowledge_manifest,
