@@ -187,7 +187,11 @@ async def run(args: argparse.Namespace) -> dict:
 
     strategies: list[str] = []
     mismatches = 0
+    param_mismatches = 0
     effective: dict = {}
+    requested = {"recall_candidates": args.recall_candidates,
+                 "lexical_weight": args.lexical_weight, "vector_weight": args.vector_weight}
+    expected_limit = max(args.recall_candidates, 5 * 4)
     for case in selected:
         started = time.perf_counter()
         try:
@@ -199,11 +203,13 @@ async def run(args: argparse.Namespace) -> dict:
             if strategy != "hybrid_only":
                 mismatches += 1
             strategies.append(strategy)
-            diagnostics = result.get("diagnostics") or {}
+            # 键名是 retrieval_diagnostics，不是 diagnostics。
+            diagnostics = result.get("retrieval_diagnostics") or {}
             if not effective and diagnostics:
-                # 记录首条实际生效的参数，确认传参没被默认值覆盖。
                 effective = {k: diagnostics.get(k) for k in
                              ("candidate_limit", "lexical_weight", "vector_weight")}
+            if diagnostics and diagnostics.get("candidate_limit") != expected_limit:
+                param_mismatches += 1
             report["cases"].append(row)
         except Exception as error:
             report["status"] = "failed"
@@ -216,10 +222,17 @@ async def run(args: argparse.Namespace) -> dict:
                                          if c.get("ndcg_at_5") is not None or c.get("empty_ok") is not None])
     report["observed_strategies"] = sorted(set(strategies))
     report["strategy_mismatch_count"] = mismatches
+    report["requested_parameters"] = requested
     report["effective_parameters"] = effective
+    report["parameter_mismatch_count"] = param_mismatches
     if mismatches:
         report["status"] = "degraded"
         report["degraded_reason"] = f"{mismatches} 条记录未走 hybrid_only（可能向量侧失败降级）"
+    elif param_mismatches:
+        # 请求的候选数与实际生效值不符，说明参数没传进去，该组不能作为证据。
+        report["status"] = "degraded"
+        report["degraded_reason"] = (f"{param_mismatches} 条记录的 candidate_limit 不是 "
+                                     f"{expected_limit}，参数可能未生效")
 
     _write_new(args.output / "report.json", report)
     return report
