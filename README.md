@@ -16,6 +16,8 @@
 | 买家说过“不要塑料材质”，换个会话就忘；记得多了还会互相打架 | 偏好 / 个人 Skill / 收藏分表存储，写入走审批，唯一约束去重 + CAS 版本控制，服务端注入 `<buyer-preferences>` 替代提示词软约束 | 偏好抽取 12/12 通过（噪声、临时要求、作用域、极性、冲突五类检查） |
 | RAG 评测体系 | 四组对照共用同一批 72 条查询与 3700 件冻结商品：精排开关 2 组、词法算法 3 组、混合召回 5 组、算法消融 24 组 | 纯向量 NDCG@5 0.910 最优；混合最好 0.902、2gram 0.882、BM25 0.849、jieba 0.806、字段加权等权 0.833，全部更低 |
 
+检索评测的原始产物不入库，打包见 [Releases: eval-evidence-2026-11-28](https://github.com/zzys-cmd/Cross-Bay/releases/tag/eval-evidence-2026-11-28)（含 34 组检索报告、4 份 Rubric 与 5 个 Harness 运行包的完整账本）。
+
 **技术栈**：AgentScope 2.x · FastAPI · AG-UI（SSE 流式）· React · SQLite · Qdrant
 
 **当前状态**
@@ -481,6 +483,8 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索精排对照用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
 前端「检索评测」页展示的是商品检索部分的指标定义，读取 `eval/verification/retrieval-standard/` 下现存 `report.json` 做基线／候选对照。当前共 34 份：检索精排对照 2 份、词法对照 3 份、商品召回扫描 5 份、算法消融 24 份；冻结基线为 `dense-baseline-20261125`（线上主链 embedding_only），定义见 `eval/retrieval/baseline-v1.json`，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
+
+`eval/verification/` 在 `.gitignore` 内，仓库不含原始产物；完整打包见 [Releases: eval-evidence-2026-11-28](https://github.com/zzys-cmd/Cross-Bay/releases/tag/eval-evidence-2026-11-28)，解压即为此目录，含每份报告的 `report.html`、`manifest.json`、`results.json` 与 `traces/`、`rows/`、`attempts.jsonl`。
 
 ## 代码与接口导航
 
