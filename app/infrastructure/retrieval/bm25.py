@@ -66,11 +66,13 @@ def _field_scores(query_terms, documents, *, k1, b):
 
 
 def bm25_rank(query: str, products: list, *, k1: float = 1.2, b: float = .75,
-              subword_weight: float = .25) -> list[tuple[float, object]]:
+              subword_weight: float = .25, tokenizer=None) -> list[tuple[float, object]]:
+    """BM25 排序。``tokenizer`` 仅供离线对照替换切词方式，默认仍用模块自带 ``terms``。"""
     if not math.isfinite(subword_weight) or subword_weight < 0:
         raise ValueError("子词权重必须为有限非负数")
-    fields = [_document_terms(p.searchable_text(), terms) for p in products]
-    query_words = set(terms(query))
+    tokenize = tokenizer or terms
+    fields = [_document_terms(p.searchable_text(), tokenize) for p in products]
+    query_words = set(tokenize(query))
     word_scores = _field_scores(query_words, [f[0] for f in fields], k1=k1, b=b)
     query_subwords = set(_subwords(query_words))
     subword_scores = (_field_scores(query_subwords, [f[1] for f in fields], k1=k1, b=b)
@@ -91,6 +93,7 @@ def field_weighted_bm25_rank(
     k1: float = 1.2,
     b: float = .75,
     subword_weight: float = .25,
+    tokenizer=None,
 ) -> list[tuple[float, object]]:
     """逐字段 BM25 后加权，保留各字段独立的长度归一化和文档频率。
 
@@ -108,7 +111,7 @@ def field_weighted_bm25_rank(
             or type(subword_weight) not in (int, float) or not math.isfinite(subword_weight)
             or subword_weight < 0):
         raise ValueError("BM25 参数须满足 k1>0、0<=b<=1、子词权重非负，且均为有限数")
-    query_words = sorted(set(terms(query)))
+    query_words = sorted(set((tokenizer or terms)(query)))
     query_subwords = sorted(set(_subwords(query_words)))
     scale = subword_weight / max(1, len(query_subwords) / max(1, len(query_words)))
     documents = [product.searchable_fields() for product in products]
@@ -117,7 +120,7 @@ def field_weighted_bm25_rank(
         weight = weights.get(name, 0)
         if weight == 0:
             continue
-        fields = [_document_terms(document.get(name, ""), terms) for document in documents]
+        fields = [_document_terms(document.get(name, ""), tokenizer or terms) for document in documents]
         word_scores = _field_scores(query_words, [field[0] for field in fields], k1=k1, b=b)
         subword_scores = (
             _field_scores(query_subwords, [field[1] for field in fields], k1=k1, b=b)

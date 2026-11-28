@@ -157,6 +157,7 @@ class CatalogSearchUseCase:
         field_weights: dict[str, float] | None = None,
         min_relevance_score: float | None = None,
         relevance_score_kind: str | None = None,
+        bm25_tokenizer=None,
     ) -> None:
         # 仅评测主动开启；记录混合检索的实际阶段，不改变排序或向模型增加字段。
         self._capture_retrieval_stages = capture_retrieval_stages
@@ -172,6 +173,8 @@ class CatalogSearchUseCase:
                 raise ValueError("相关性阈值必须绑定实际评分类型，不能跨模型或 RRF 分数复用")
         self._min_relevance_score = min_relevance_score
         self._relevance_score_kind = relevance_score_kind
+        # 仅供离线对照替换 BM25 切词方式；None 时沿用 bm25 模块自带的 terms。
+        self._bm25_tokenizer = bm25_tokenizer
         self._fusion_weights = (hybrid_lexical_weight, hybrid_vector_weight)
         reciprocal_rank_fusion([], [], weights=self._fusion_weights)
         if type(recall_candidates) is not int or not 8 <= recall_candidates <= 256:
@@ -328,8 +331,10 @@ class CatalogSearchUseCase:
                        "field_lexical_enabled": self._field_lexical_enabled}
         async def lexical():
             if self._field_lexical_enabled:
-                return field_weighted_bm25_rank(spec.normalized_query, products, field_weights=self._field_weights)
-            return bm25_rank(spec.normalized_query, products)
+                return field_weighted_bm25_rank(spec.normalized_query, products,
+                                                field_weights=self._field_weights,
+                                                tokenizer=self._bm25_tokenizer)
+            return bm25_rank(spec.normalized_query, products, tokenizer=self._bm25_tokenizer)
         async def vector():
             if self._embedder is None or self._vector_index is None:
                 return None
