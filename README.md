@@ -14,6 +14,7 @@
 | 长对话里工具结果被裁掉，模型随后“忘了自己看过什么” | 分层上下文、检查点与工具证据保活，裁剪策略由评测判定 | 缓存命中 45.9% → 67.7%，账单降 25.8% |
 | 改一句 prompt 可能让成功率掉 10 个点，而单测照样全绿 | 33 个留出场景 × 2 策略 × 3 重复 = 198 次真实会话，配对比较 + 收益门禁 | 成本 ¥5.705 → ¥4.233，成功率无差异 |
 | 买家说过“不要塑料材质”，换个会话就忘；记得多了还会互相打架 | 偏好 / 个人 Skill / 收藏分表存储，写入走审批，唯一约束去重 + CAS 版本控制，服务端注入 `<buyer-preferences>` 替代提示词软约束 | 偏好抽取 12/12 通过（噪声、临时要求、作用域、极性、冲突五类检查） |
+| 检索参数全靠拍脑袋：混合召回、字段加权、相关性阈值都写了代码，但从没验证过是否有用 | 四组对照共用同一批 72 条查询与 3700 件冻结商品：精排开关 2 组、词法算法 3 组、混合召回 5 组、算法消融 24 组 | 纯向量 NDCG@5 0.910 最优；混合最好 0.902、2gram 0.882、BM25 0.849、jieba 0.806、字段加权等权 0.833，全部更低 |
 
 **技术栈**：AgentScope 2.x · FastAPI · AG-UI（SSE 流式）· React · SQLite · Qdrant
 
@@ -22,7 +23,7 @@
 | 项 | 情况 |
 |---|---|
 | 留出集质量 | 198 次真实会话全部通过（CI 留出集实跑，零失败） |
-| 单元测试 | 后端 2265 例（含 46 skip、1 xfail）、前端 267 例，CI 每次 push 自动运行 |
+| 单元测试 | 后端 2133 例（含 46 skip）、前端 267 例，CI 每次 push 自动运行 |
 | 收益验收 | **通过**：候选策略成本降 25.8%（CI95 21.1%–31.6%），¥5.705 → ¥4.233；缓存命中 45.9% → 67.7%；成功率无差异；普通轮 P95 6398ms → 6157ms |
 | 真实交易 | **未接入**——样例目录 + 本地账本，无支付与物流 |
 
@@ -216,7 +217,20 @@ docker compose --env-file .env -f docker/docker-compose.yaml down
 
 本轮标准要求 NDCG@5 和返回结果精度各提升至少 0.02，Recall@5 最多下降 0.01；预算、材质、配送违规为 0，并且三类均须有有效正例覆盖，预期空结果准确率不得下降。相同目录、金标、查询选择和模型身份才可比较；未运行、不可比或诊断报告均不能显示“验收通过”。这些是冻结目标，不是已经取得的收益。
 
-页面当前可选两份诊断报告：`当前检索主链（走 Embedding，无精排）` 与 `当前检索主链 + 精排`，二者只差 `reranker_mode`。实测 NDCG@5 由 0.9096 升到 0.9602，但返回精度只提升 0.63pp（未达 +2pp 门禁），P95 由 376ms 涨到 2786ms。**精排尚未启用**，因为在延迟与精度两项门禁未过；现有标注缺少材质约束和预算正例，这两项始终无法判定通过。另有一轮 Harness 全链路实测显示，开启精排的效果劣于关闭（该轮产物未保留，此处不作数字引用）。检索层精排提升了排序质量但代价是 6.4 倍延迟，全链路又为负收益，两条证据都指向同一结论：**当前不启用精排**。GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
+页面当前可选 34 份诊断报告，分四组实验，全部基于同一批 72 条查询与 3700 件冻结商品（`eval/v2/product_retrieval.jsonl`、`data/catalog-v3.jsonl`）：
+
+| 实验 | 组数 | 变量 | 结论 |
+| --- | --- | --- | --- |
+| 精排开关 | 2 | `reranker_mode` | NDCG@5 0.9096 → 0.9602，但返回精度只 +0.63pp（未达 +2pp 门禁），P95 376ms → 2786ms（6.4 倍）；**不启用** |
+| 词法对照 | 3 | 三种字面匹配，均不接 Embedding | 2gram 0.8821 > BM25 两字切分 0.8491 > BM25 + jieba 0.8055；**2gram 兜底最优**，jieba 切词反而更差 |
+| 商品召回 | 5 | 混合检索的候选数与两路融合权重 | 五组全部低于纯向量（最好 0.9019），延迟翻倍；候选数 64 以上不再变化；**不启用混合** |
+| 算法消融 | 24 | 字段加权 7 组 + 相关性阈值 17 档 | 字段加权全等权最好（0.8333）且仍低于纯向量，代码默认那套经验权重反而低 3.4pp；阈值 0.60 以下完全无效，0.65–0.70 精度 +2.0~5.7pp 但 NDCG 降 0.2~0.9pp |
+
+四组实验共同指向：**当前线上配置（纯向量、无精排、无混合）就是这批数据下的最优解**。精排、混合召回、字段加权都实现了也测过了，全部为负收益；相关性阈值是唯一有正向收益的旋钮，但要用排序质量换精度，不是免费收益。
+
+冻结基线为 `dense-baseline-20261125`（NDCG@5 0.9096，线上主链 embedding_only），定义见 `eval/retrieval/baseline-v1.json`。现有标注缺少材质约束和预算正例，这两项始终无法判定通过，因此没有一份报告被标为「验收通过」。
+
+GET `/commerce/retrieval-evaluation` 只读取协议报告，不启动模型调用或修改检索默认策略。
 
 ## 技术架构与请求路径
 
@@ -247,7 +261,7 @@ flowchart TD
 | 前端与传输 | React 18 + TS + Vite；官方 `@ag-ui/client/core 0.0.59` 对接 `ag-ui-protocol 0.1.22` | 消费结构化商品与确认数据，不从 Markdown 猜价格、库存或订单状态 |
 | Agent 编排 | AgentScope 2.x；MainAgent 持业务工具直接完成简单任务，需要并行、隔离或长链时 `task_dispatch` 派发 SearchAgent / TradeAgent | 子 Agent 与主 Agent 复用同一套工具装配 |
 | 业务分层 | DDD 洋葱：domain 定实体与端口 → application 承载用例与编排 → infrastructure 实现数据库、模型、检索 → FastAPI 在最外侧 | [`composition.py`](app/composition.py) 统一装配 API 与 worker |
-| 检索与知识 | 版本化 JSONL 目录装入内存仓储；embedding → Qdrant → HTTP reranker，两级降级到向量排序或关键词；品类知识用 Markdown + KnowledgeBase | 精确 SKU 直查权威目录，预算等硬约束由代码过滤；BM25/RRF 已实现但默认关闭 |
+| 检索与知识 | 版本化 JSONL 目录装入内存仓储；embedding → Qdrant → HTTP reranker，两级降级到向量排序或关键词；品类知识用 Markdown + KnowledgeBase | 精确 SKU 直查权威目录，预算等硬约束由代码过滤；BM25 混合召回与 RRF 融合已实现并经四组检索评测否决，默认关闭 |
 | 上下文与记忆 | 偏好提炼后与向量原子持久化，每轮语义召回注入 hint；Skill 元数据常驻、正文按需；工具证据与决策投影分离 | 预算不足时规则回复收口；Prompt 与工具合同版本绑定会话 |
 | 模型配置与计数 | [`ModelRegistry`](app/infrastructure/model_registry.py) 统读内置目录与买家配置，每轮冻结快照 | [`计数适配层`](app/infrastructure/model_counting.py) 让页面圆环与容量检查共用同一口径 |
 | 交易与可靠性 | 确认、幂等、订单与库存走 SQLite 事务；会话 lease/fencing/CAS 防并发旧写 | 队列有 pending 回收、死信与归档；网关并发、重试、熔断约束工具与模型执行 |
@@ -447,10 +461,10 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | --- | --- | --- | --- | --- |
 | Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval/verification/ci-release-20261122-44989461349/`（report.html、summary.json、rows、attempts.jsonl） | 同一批留出任务下，两种 prompt 布局（legacy_system / stable_prefix）谁更省、谁不丢事实 | 33 个留出场景 × 2 策略 × 3 次 = 198 | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
 | Rubric 回归 | 脚本 `scripts/eval_regression.py`<br>产物 `eval/verification/rubric-20261124/` | 真实场景下的回答质量：数字准不准、行为对不对、表达自不自然 | 13 条 | 10/13 通过；同一批题四次运行 0.808–0.885 |
-| 算法消融 | 脚本 `scripts/eval/retrieval_ablation.py`<br>产物 `eval/verification/retrieval-standard/ablate-*-20261128/` | 字段加权 7 组与相关性阈值 17 档：字段权重能否带来收益、阈值取多少合适 | 72 条查询 × 24 组 | 字段加权全部低于纯向量，全等权最好（0.8333），代码默认那套经验权重反而低 3.4pp；阈值 0.60 以下毫无影响，0.65–0.70 精度 +2.0~5.7pp 而 NDCG 仅降 0.2~0.9pp |
 | 检索精排对照 | 脚本 `scripts/eval/retrieval_dense_rerank.py`<br>产物 `eval/verification/retrieval-standard/dense-*-20261125/` | 线上同一套检索链路上，只开关精排的质量与延迟差异 | 72 条查询、3700 件商品、Top-5 | NDCG@5 0.9096 → 0.9602（+5.1pp）；精度 +0.63pp 未达门禁；P95 376ms → 2786ms |
 | 词法对照 | 脚本 `scripts/eval/retrieval_lexical.py`<br>产物 `eval/verification/retrieval-standard/lex-*-20261128/` | 三种字面匹配的召回与排序差异：2gram、BM25(两字切分)、BM25(jieba 分词)，都不接 Embedding | 72 条查询、3700 件商品、Top-5 | 2gram NDCG@5 最高 0.8821；BM25 两字切分 0.8491（−3.3pp）；BM25+jieba 0.8055（**−7.7pp**，Recall 也掉 5.3pp），三个里最差 |
 | 商品召回扫描 | 脚本 `scripts/eval/retrieval_hybrid_scan.py`<br>产物 `eval/verification/retrieval-standard/hybrid-*-20261128/` | 混合检索下候选数（32/64/128）与两路权重（1:1、1.5:1、1:1.5）的组合，回答「混合能否超过纯向量」 | 72 条查询 × 5 组 | 五组全部低于纯向量 0.9096；最好的偏向量 1:1.5 组仅 0.9019（−0.8pp），P95 从 376ms 涨到 724ms；越偏向量越好，偏 BM25 最差 |
+| 算法消融 | 脚本 `scripts/eval/retrieval_ablation.py`<br>产物 `eval/verification/retrieval-standard/ablate-*-20261128/` | 字段加权 7 组与相关性阈值 17 档：字段权重能否带来收益、阈值取多少合适 | 72 条查询 × 24 组 | 字段加权全部低于纯向量，全等权最好（0.8333），代码默认那套经验权重反而低 3.4pp；阈值 0.60 以下毫无影响，0.65–0.70 精度 +2.0~5.7pp 而 NDCG 仅降 0.2~0.9pp |
 
 **第二层：只有代码与数据，未出正式产物**——脚本与数据集在仓库内，但没有可引用的效果报告。
 
