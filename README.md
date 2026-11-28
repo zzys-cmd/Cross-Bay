@@ -447,11 +447,11 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 | --- | --- | --- | --- | --- |
 | Harness 上下文 | 脚本 `scripts/eval/harness/`<br>产物 `eval/verification/ci-release-20261122-44989461349/`（report.html、summary.json、rows、attempts.jsonl） | 同一批留出任务下，两种 prompt 布局（legacy_system / stable_prefix）谁更省、谁不丢事实 | 33 个留出场景 × 2 策略 × 3 次 = 198 | 零失败；成本 ¥5.705 → ¥4.233（降 25.8%）；缓存命中 45.9% → 67.7% |
 | Rubric 回归 | 脚本 `scripts/eval_regression.py`<br>产物 `eval/verification/rubric-20261124/` | 真实场景下的回答质量：数字准不准、行为对不对、表达自不自然 | 13 条 | 10/13 通过；同一批题四次运行 0.808–0.885 |
+| 检索精排对照 | 脚本 `scripts/eval/retrieval_dense_rerank.py`<br>产物 `eval/verification/retrieval-standard/dense-*-20261125/` | 线上同一套检索链路上，只开关精排的质量与延迟差异 | 72 条查询、3700 件商品、Top-5 | NDCG@5 0.9096 → 0.9602（+5.1pp）；精度 +0.63pp 未达门禁；P95 376ms → 2786ms |
 | 词法对照 | 脚本 `scripts/eval/retrieval_lexical.py`<br>产物 `eval/verification/retrieval-standard/lex-*-20261128/` | 三种字面匹配的召回与排序差异：2gram、BM25(两字切分)、BM25(jieba 分词)，都不接 Embedding | 72 条查询、3700 件商品、Top-5 | 2gram NDCG@5 最高 0.8821；BM25 两字切分 0.8491（−3.3pp）；BM25+jieba 0.8055（**−7.7pp**，Recall 也掉 5.3pp），三个里最差 |
 | 商品召回扫描 | 脚本 `scripts/eval/retrieval_hybrid_scan.py`<br>产物 `eval/verification/retrieval-standard/hybrid-*-20261128/` | 混合检索下候选数（32/64/128）与两路权重（1:1、1.5:1、1:1.5）的组合，回答「混合能否超过纯向量」 | 72 条查询 × 5 组 | 五组全部低于纯向量 0.9096；最好的偏向量 1:1.5 组仅 0.9019（−0.8pp），P95 从 376ms 涨到 724ms；越偏向量越好，偏 BM25 最差 |
-| 检索精排对照 | 脚本 `scripts/eval/retrieval_dense_rerank.py`<br>产物 `eval/verification/retrieval-standard/dense-*-20261125/` | 线上同一套检索链路上，只开关精排的质量与延迟差异 | 72 条查询、3700 件商品、Top-5 | NDCG@5 0.9096 → 0.9602（+5.1pp）；精度 +0.63pp 未达门禁；P95 376ms → 2786ms |
 
-**第三层：只有代码与数据，未出正式产物**——脚本与数据集在仓库内，但没有可引用的效果报告。
+**第二层：只有代码与数据，未出正式产物**——脚本与数据集在仓库内，但没有可引用的效果报告。
 
 | 评测 | 代码 / 数据集 | 测什么 | 状态 |
 | --- | --- | --- | --- |
@@ -465,7 +465,7 @@ uv run python -m scripts.eval.run_skill_suite --mode model --profile release --o
 
 **各评测的数据集**：Harness 用 `eval/harness/v1/`（`cases.json` 48 场景 + `suite.json` 策略与门禁，另有缓存布局、效率、Skill 目录三套专用 suite）；Rubric 用 `eval/cases.yaml`；Skill 用 `eval/learning/skill-cases-v2.json`；检索精排对照用 `eval/v2/product_retrieval.jsonl` 与 `eval/retrieval/`；记忆用 `eval/memory/cases.json`；GEPA 用 `eval/optimization_search.jsonl`。`eval/proposals/` 是注入用例，由安全契约测试引用，不属于独立评测。
 
-前端「检索评测」页展示的是商品检索部分的指标定义，读取 `eval/verification/retrieval-standard/` 下现存 `report.json` 做基线／候选对照；历史报告已清理，当前待重建，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
+前端「检索评测」页展示的是商品检索部分的指标定义，读取 `eval/verification/retrieval-standard/` 下现存 `report.json` 做基线／候选对照。当前共 10 份：检索精排对照 2 份、词法对照 3 份、商品召回扫描 5 份；冻结基线为 `dense-baseline-20261125`（线上主链 embedding_only），定义见 `eval/retrieval/baseline-v1.json`，指标口径见 [eval/retrieval/README.md](eval/retrieval/README.md)。
 
 ## 代码与接口导航
 
