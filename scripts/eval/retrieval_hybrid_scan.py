@@ -97,6 +97,10 @@ def freeze_definition(*, dataset: Path, split: str) -> dict:
     if not selected or len({c["id"] for c in selected}) != len(selected):
         raise ValueError("选集为空或用例 ID 重复")
     source, evaluator = _source_fingerprint(), _evaluator_fingerprint()
+    # 接口校验要求 embedding_identity 是符合 SAFE_ID 的字符串；用模型身份哈希。
+    model_settings = load_settings(require_llm_key=False)
+    embedding_identity = _json_hash({key: getattr(model_settings, key) for key in
+                                     ("embedding_model", "embedding_dim", "embedding_version")})
     try:
         git_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
                                   text=True, timeout=10, check=True).stdout.strip()
@@ -111,6 +115,7 @@ def freeze_definition(*, dataset: Path, split: str) -> dict:
             "source_sha256": source["sha256"],
             "standard_sha256": standard_fingerprint(load_standard()),
             "evaluator_sha256": evaluator["sha256"],
+            "embedding_identity": embedding_identity,
             "query_mode": "structured_spec", "k": 5, "split": split, "repetitions": 1,
             "catalog_count": len(records), "case_count": len(selected),
             "sku_count": sum(len(row["skus"]) for row in records),
